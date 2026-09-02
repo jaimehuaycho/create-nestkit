@@ -1,7 +1,8 @@
 import * as fs from 'fs';
+import * as os from 'os';
 import * as path from 'path';
 import { describe, it, expect } from 'vitest';
-import { loadManifest, resolvePlugins, pinDep, Manifest } from './generator';
+import { loadManifest, resolvePlugins, pinDep, generateProject, Manifest } from './generator';
 import { SUPPORTED_NEST_VERSIONS } from './nest-version';
 
 const PLUGINS_DIR = path.join(__dirname, '..', 'templates', 'plugins');
@@ -35,6 +36,26 @@ describe('loadManifest', () => {
                 expect(ALL_PLUGIN_IDS).toContain(dep);
             }
         }
+    });
+
+    it('observe declares minNestMajor 12 (the @nestjs/observe package does not exist before v12)', () => {
+        expect(loadManifest('observe').minNestMajor).toBe(12);
+    });
+});
+
+describe('generateProject — minNestMajor guard', () => {
+    it('rejects before touching the filesystem when a selected plugin needs a newer Nest major', async () => {
+        const targetDir = path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'nestkit-guard-')), 'my-api');
+
+        await expect(generateProject({
+            projectName: 'my-api',
+            plugins:     ['observe'],
+            dbDriver:    'postgres',
+            targetDir,
+            nestVersion: SUPPORTED_NEST_VERSIONS[11], // observe needs 12+
+        })).rejects.toThrow(/observe.*requires NestJS 12\+.*v11/);
+
+        expect(fs.existsSync(targetDir)).toBe(false);
     });
 });
 

@@ -21,9 +21,10 @@ export function buildReadme(
     const hasDb   = ids.has('database');
     const hasAuth = ids.has('auth');
     const hasMail = ids.has('mailer');
-    const hasSock = ids.has('socket');
-    const hasPdf  = ids.has('pdf');
-    const anyPlugin = hasDb || hasAuth || hasMail || hasSock || hasPdf;
+    const hasSock    = ids.has('socket');
+    const hasPdf     = ids.has('pdf');
+    const hasObserve = ids.has('observe');
+    const anyPlugin  = hasDb || hasAuth || hasMail || hasSock || hasPdf || hasObserve;
 
     const l: string[] = [];
 
@@ -37,6 +38,7 @@ export function buildReadme(
     if (hasMail) l.push(`- **Mailer** — SMTP or HTTP API (Resend-compatible), Port & Adapter pattern`);
     if (hasSock) l.push(`- **WebSockets** — Socket.io`);
     if (hasPdf)  l.push(`- **PDF generation** — Puppeteer`);
+    if (hasObserve) l.push(`- **Observability** — Nest Observe (tracing, metrics, logs) — needs credentials from observe.nestjs.com`);
     l.push(`- **Swagger** at \`/api/docs\`, **Joi** env validation, global exception filter`);
     l.push(`- **Dockerfile** + **docker-compose.yml**`);
 
@@ -49,6 +51,10 @@ export function buildReadme(
     l.push(`\`\`\``);
     l.push(``, `Swagger UI: \`http://localhost:3000/api/docs\``);
     l.push(`Health check: \`http://localhost:3000/api/health\``);
+    if (hasObserve) {
+        l.push(``, `Sign up at [observe.nestjs.com](https://observe.nestjs.com) and set \`OBSERVE_APP_KEY\` /`);
+        l.push(`\`OBSERVE_APP_SECRET\` in \`.env\` — without them the app still runs fine, telemetry is just dropped.`);
+    }
 
     l.push(``, `## Project Structure`);
     l.push(`\`\`\``);

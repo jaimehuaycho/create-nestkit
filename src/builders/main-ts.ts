@@ -7,8 +7,9 @@ import { Manifest } from '../generator';
  */
 export function buildMainTs(manifests: Manifest[], dbDriver: string, projectName: string): string {
     const ids       = new Set(manifests.map(m => m.id));
-    const hasDb     = ids.has('database');
-    const hasAuth   = ids.has('auth');
+    const hasDb      = ids.has('database');
+    const hasAuth    = ids.has('auth');
+    const hasObserve = ids.has('observe');
     const isPostgres = hasDb && dbDriver === 'postgres';
 
     // ── Imports ────────────────────────────────────────────────────────────
@@ -26,8 +27,9 @@ export function buildMainTs(manifests: Manifest[], dbDriver: string, projectName
     lines.push(`import { setupSwagger } from './config/helpers/swagger.js';`);
     lines.push(`import { logServerStatus } from './config/helpers/logger.js';`);
     lines.push(`import { HttpExceptionFilter } from './shared/filters/index.js';`);
-    if (hasAuth) lines.push(`import { JwtConfig } from './app/auth/config/jwt.config.js';`);
-    if (hasDb)   lines.push(`import { DatabaseConfig } from './database/config/database.config.js';`);
+    if (hasAuth)    lines.push(`import { JwtConfig } from './app/auth/config/jwt.config.js';`);
+    if (hasDb)      lines.push(`import { DatabaseConfig } from './database/config/database.config.js';`);
+    if (hasObserve) lines.push(`import { ObserveInstrument } from './config/helpers/observe.js';`);
 
     // ── Bootstrap function ────────────────────────────────────────────────
     lines.push(``);
@@ -39,7 +41,9 @@ export function buildMainTs(manifests: Manifest[], dbDriver: string, projectName
         lines.push(`    types.setTypeParser(20, Number);`);
     }
     lines.push(``);
-    lines.push(`    const app = await NestFactory.create(AppModule, { logger });`);
+    lines.push(hasObserve
+        ? `    const app = await NestFactory.create(AppModule, { logger, instrument: ObserveInstrument });`
+        : `    const app = await NestFactory.create(AppModule, { logger });`);
     lines.push(`    const cfg = app.get(AppConfig);`);
     lines.push(``);
     lines.push(`    app.setGlobalPrefix(cfg.apiPrefix);`);
@@ -79,6 +83,7 @@ export function buildMainTs(manifests: Manifest[], dbDriver: string, projectName
         lines.push(`        dbLogs:    dbCfg.logging,`);
         lines.push(`        database:  \`\${dbCfg.host}:\${dbCfg.port}/\${dbCfg.database}\`,`);
     }
+    if (hasObserve) lines.push(`        observeConfigured: !!process.env.OBSERVE_APP_KEY,`);
     lines.push(`    });`);
     lines.push(`}`);
     lines.push(`bootstrap();`);

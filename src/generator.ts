@@ -127,6 +127,10 @@ export interface GeneratorOptions {
     plugins:     string[];
     dbDriver:    string;
     targetDir:   string;
+    // Optional: pass the already-resolved profile when the caller needed it earlier anyway
+    // (e.g. index.ts uses it to decide which plugins to even offer). Falls back to resolving
+    // it here so existing callers/tests that don't pass it keep working unchanged.
+    nestVersion?: NestVersionProfile;
 }
 
 export interface Manifest {
@@ -136,6 +140,9 @@ export interface Manifest {
     dependencies: { prod: string[]; dev: string[] };
     scripts:  Record<string, string>;
     docker?:  { base?: 'alpine' | 'debian' };
+    // Lowest NestJS major this plugin works with (e.g. @nestjs/observe only exists on 12+).
+    // Enforced both here and by index.ts, which shouldn't offer the option in the first place.
+    minNestMajor?: number;
 }
 
 export function loadManifest(pluginId: string): Manifest {
@@ -183,19 +190,30 @@ function copyDir(src: string, dest: string, vars: Record<string, string> = {}) {
     }
 }
 
-export async function generateProject({ projectName, plugins, dbDriver, targetDir }: GeneratorOptions) {
+export async function generateProject({ projectName, plugins, dbDriver, targetDir, nestVersion: passedNestVersion }: GeneratorOptions) {
     const parentDir   = path.dirname(targetDir);
     const resolvedIds = resolvePlugins(plugins);
     const manifests   = resolvedIds.map(loadManifest);
     const driver      = DB_DRIVERS[dbDriver] ?? DB_DRIVERS.postgres;
 
-    // 1. Scaffold base project with the official NestJS CLI.
     // Never scaffold off `@latest` blindly — a new Nest major can change the scaffold shape
     // (v12 switched to ESM `"type": "module"` + pulled in TS 6's implicit `strict: true`).
     // Instead, match whatever NestJS version the user actually has installed, falling back
     // to the newest major the templates are verified against. See src/nest-version.ts.
-    const nestVersion = resolveNestVersion();
-    const newFlags    = nestVersion.newFlags ?? [];
+    const nestVersion = passedNestVersion ?? resolveNestVersion();
+
+    // Defends the invariant index.ts's prompt already enforces (it shouldn't offer a plugin
+    // whose minNestMajor exceeds the resolved version) — catches programmatic/API misuse too.
+    for (const m of manifests) {
+        if (m.minNestMajor && nestVersion.major < m.minNestMajor) {
+            throw new Error(
+                `Plugin "${m.id}" requires NestJS ${m.minNestMajor}+, but v${nestVersion.major} was resolved.`,
+            );
+        }
+    }
+
+    // 1. Scaffold base project with the official NestJS CLI.
+    const newFlags = nestVersion.newFlags ?? [];
     // Some majors add scaffold prompts create-nestkit doesn't control via a flag (e.g. v12's
     // ESM/CommonJS choice). Tried suppressing it by closing/piping stdin — doesn't work: the
     // underlying prompt reads straight from /dev/tty, bypassing whatever we hand it as stdio,

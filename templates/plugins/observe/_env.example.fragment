@@ -1,0 +1,4 @@
+# Observability — sign up at https://observe.nestjs.com to get real values
+OBSERVE_APP_KEY=your_app_key
+OBSERVE_APP_SECRET=your_app_secret
+OBSERVE_SERVICE_ID=app

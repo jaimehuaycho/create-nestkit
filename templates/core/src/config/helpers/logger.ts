@@ -49,6 +49,8 @@ export interface ServerBannerOptions {
     dbLogs?:    boolean;
     /** Defined only when the database plugin is active. */
     database?:  string;
+    /** Defined only when the observe plugin is active. */
+    observeConfigured?: boolean;
 }
 
 /**
@@ -80,6 +82,9 @@ export function logServerStatus(cfg: AppConfig, appName: string, opts: ServerBan
         ...(opts.dbLogs !== undefined ? [['DB Logs', opts.dbLogs
             ? `${OK} ${C.green}Enabled${C.reset}`
             : `${FAIL} ${C.dim}Disabled${C.reset}`] as [string, string]] : []),
+        ...(opts.observeConfigured !== undefined ? [['Observe', opts.observeConfigured
+            ? `${OK} ${C.green}Configured${C.reset}`
+            : `${WARN} ${C.yellow}No credentials${C.reset} ${C.dim}(observe.nestjs.com)${C.reset}`] as [string, string]] : []),
         ['CORS', corsDisplay],
     ];
 

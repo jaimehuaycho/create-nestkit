@@ -51,6 +51,15 @@ describe('buildReadme', () => {
         expect(withDb).toContain('/db/map');
     });
 
+    it('mentions the observe.nestjs.com signup only when observe is active', () => {
+        const without = buildReadme([fakeManifest('database')], 'postgres', 'my-api', 12);
+        expect(without).not.toContain('observe.nestjs.com');
+
+        const withObserve = buildReadme([fakeManifest('observe')], 'postgres', 'my-api', 12);
+        expect(withObserve).toContain('observe.nestjs.com');
+        expect(withObserve).toContain('OBSERVE_APP_KEY');
+    });
+
     it('mentions each active plugin by name', () => {
         const result = buildReadme(
             [fakeManifest('mailer'), fakeManifest('socket'), fakeManifest('pdf')],

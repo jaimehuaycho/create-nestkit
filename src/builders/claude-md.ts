@@ -2,25 +2,27 @@ import { Manifest } from '../generator';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 interface BuildContext {
-    ids:      Set<string>;
-    hasDb:    boolean;
-    hasAuth:  boolean;
-    hasMail:  boolean;
-    hasSock:  boolean;
-    hasPdf:   boolean;
-    dbDriver: string;
-    name:     string;
+    ids:        Set<string>;
+    hasDb:      boolean;
+    hasAuth:    boolean;
+    hasMail:    boolean;
+    hasSock:    boolean;
+    hasPdf:     boolean;
+    hasObserve: boolean;
+    dbDriver:   string;
+    name:       string;
 }
 
 function ctx(manifests: Manifest[], dbDriver: string, projectName: string): BuildContext {
     const ids = new Set(manifests.map(m => m.id));
     return {
         ids,
-        hasDb:    ids.has('database'),
-        hasAuth:  ids.has('auth'),
-        hasMail:  ids.has('mailer'),
-        hasSock:  ids.has('socket'),
-        hasPdf:   ids.has('pdf'),
+        hasDb:      ids.has('database'),
+        hasAuth:    ids.has('auth'),
+        hasMail:    ids.has('mailer'),
+        hasSock:    ids.has('socket'),
+        hasPdf:     ids.has('pdf'),
+        hasObserve: ids.has('observe'),
         dbDriver,
         name: projectName,
     };
@@ -71,14 +73,15 @@ export function buildClaudeMd(manifests: Manifest[], dbDriver: string, projectNa
 
     // Active plugins
     l.push(``, `## Active Plugins`);
-    if (!c.hasDb && !c.hasAuth && !c.hasMail && !c.hasSock && !c.hasPdf) {
+    if (!c.hasDb && !c.hasAuth && !c.hasMail && !c.hasSock && !c.hasPdf && !c.hasObserve) {
         l.push(`- None — core only (config, health check, Swagger, global exception filter).`);
     } else {
-        if (c.hasDb)   l.push(`- **Database** (${c.dbDriver}) — TypeORM, migrations, seeds → \`src/database/CLAUDE.md\``);
-        if (c.hasAuth) l.push(`- **Auth** — JWT + refresh rotation + roles → \`src/app/auth/CLAUDE.md\``);
-        if (c.hasMail) l.push(`- **Mailer** — SMTP or API adapter → \`src/plugins/CLAUDE.md\``);
-        if (c.hasSock) l.push(`- **WebSockets** — Socket.io → \`src/plugins/CLAUDE.md\``);
-        if (c.hasPdf)  l.push(`- **PDF** — Puppeteer → \`src/plugins/CLAUDE.md\``);
+        if (c.hasDb)      l.push(`- **Database** (${c.dbDriver}) — TypeORM, migrations, seeds → \`src/database/CLAUDE.md\``);
+        if (c.hasAuth)    l.push(`- **Auth** — JWT + refresh rotation + roles → \`src/app/auth/CLAUDE.md\``);
+        if (c.hasMail)    l.push(`- **Mailer** — SMTP or API adapter → \`src/plugins/CLAUDE.md\``);
+        if (c.hasSock)    l.push(`- **WebSockets** — Socket.io → \`src/plugins/CLAUDE.md\``);
+        if (c.hasPdf)     l.push(`- **PDF** — Puppeteer → \`src/plugins/CLAUDE.md\``);
+        if (c.hasObserve) l.push(`- **Observability** — Nest Observe → \`src/config/CLAUDE.md\` (needs credentials from observe.nestjs.com)`);
     }
 
     // Commands
@@ -326,7 +329,7 @@ export function buildSharedClaudeMd(c: ReturnType<typeof ctx>): string {
 // ────────────────────────────────────────────────────────────────────────────
 // src/config/CLAUDE.md — config module and env vars
 // ────────────────────────────────────────────────────────────────────────────
-export function buildConfigClaudeMd(): string {
+export function buildConfigClaudeMd(hasObserve: boolean): string {
     const l: string[] = [];
 
     l.push(`# config/ — Configuration Reference`);
@@ -365,6 +368,24 @@ export function buildConfigClaudeMd(): string {
     l.push(`- \`setupSwagger(app, options)\` → configures OpenAPI at \`/api/docs\` with bearer auth`);
     l.push(`  - Bearer scheme name: \`'access-token'\` → use \`@ApiBearerAuth('access-token')\` in controllers`);
     l.push(`- \`logServerStatus(cfg, appName, opts)\` → prints the startup banner`);
+
+    if (hasObserve) {
+        l.push(``, `## Observability (\`src/config/helpers/observe.ts\`)`);
+        l.push(`\`createObserveModule()\` returns \`{ ObserveModule, ObserveInstrument }\`, wired in exactly two places:`);
+        l.push(`\`\`\`typescript`);
+        l.push(`// app.module.ts`);
+        l.push(`ObserveModule.forRoot({ appKey: process.env.OBSERVE_APP_KEY!, appSecret: ..., serviceId: ... })`);
+        l.push(``);
+        l.push(`// main.ts`);
+        l.push(`NestFactory.create(AppModule, { logger, instrument: ObserveInstrument })`);
+        l.push(`\`\`\``);
+        l.push(`Credentials come from \`OBSERVE_APP_KEY\` / \`OBSERVE_APP_SECRET\` (sign up at`);
+        l.push(`[observe.nestjs.com](https://observe.nestjs.com)) — read directly from \`process.env\`, not via`);
+        l.push(`\`ConfigService\`, because \`ObserveModule.forRoot()\` needs them at module-registration time,`);
+        l.push(`before Nest's DI container exists. \`dotenv/config\` at the top of \`main.ts\` guarantees they're`);
+        l.push(`already loaded by then. Missing/invalid credentials don't crash the app — the collector just`);
+        l.push(`returns 401 and telemetry is dropped.`);
+    }
 
     return l.join('\n') + '\n';
 }
@@ -667,7 +688,7 @@ export function buildAllClaudeFiles(
 
     // All detailed rules live under .claude/rules/ — unified, nothing scattered in src/
     files.set('.claude/rules/shared.md',   buildSharedClaudeMd(c));
-    files.set('.claude/rules/config.md',   buildConfigClaudeMd());
+    files.set('.claude/rules/config.md',   buildConfigClaudeMd(c.hasObserve));
 
     if (c.hasDb)   files.set('.claude/rules/database.md', buildDatabaseClaudeMd(c.dbDriver));
     if (c.hasAuth) files.set('.claude/rules/auth.md',     buildAuthClaudeMd());
