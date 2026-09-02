@@ -53,7 +53,7 @@ export function buildMainTs(manifests: Manifest[], dbDriver: string, projectName
     lines.push(`        });`);
     lines.push(`    }`);
     lines.push(``);
-    lines.push(`    app.enableCors(getCorsOptions(cfg.domainFrontend));`);
+    lines.push(`    app.enableCors(getCorsOptions(cfg.corsOrigins));`);
     lines.push(``);
     lines.push(`    app.useGlobalPipes(new ValidationPipe({`);
     lines.push(`        transform:            true,`);
@@ -72,7 +72,7 @@ export function buildMainTs(manifests: Manifest[], dbDriver: string, projectName
     lines.push(`    logServerStatus(cfg, '${projectName}', {`);
     lines.push(`        swagger:   swagger,`);
     lines.push(`        docsPath:  'api/docs',`);
-    lines.push(`        cors:      cfg.domainFrontend,`);
+    lines.push(`        cors:      cfg.corsOrigins,`);
     lines.push(`        logLevels: logger,`);
     if (hasAuth) lines.push(`        jwtActive: jwtCfg.isActive,`);
     if (hasDb) {

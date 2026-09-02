@@ -33,7 +33,7 @@ src/plugins/{name}/
   ```typescript
   return { module: {Name}Module, imports: [adapterModule], exports: [adapterModule] };
   ```
-  Never export the port token directly — NestJS 11 requires re-exporting the module.
+  Never export the port token directly — NestJS requires re-exporting the module.
 - Add env vars to `.env.example` and `src/config/env.validation.ts`.
 - All errors use exception classes — no inline throws.
 - Register `{Name}Module.register()` in `src/app.module.ts`.

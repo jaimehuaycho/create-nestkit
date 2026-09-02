@@ -8,7 +8,8 @@ import { UpdateUserDto } from '../dto/update-user.dto.js';
 import { FindAllUsersParamsDto } from '../dto/find-all-users-params.dto.js';
 import { UserNotFoundException, UserAlreadyExistsException } from '../exceptions/index.js';
 import { DtoRepository } from '../../../shared/orm/index.js';
-import { FindOptions, MutationOptions, PaginationResponseDto } from '../../../shared/dto/index.js';
+import { PaginationResponseDto } from '../../../shared/dto/index.js';
+import { FindOptions, MutationOptions } from '../../../shared/dto/options.dto.js';
 import { hashPassword } from '../../../shared/utils/crypto.util.js';
 
 @Injectable()

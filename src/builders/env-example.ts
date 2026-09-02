@@ -5,7 +5,9 @@ const BASE = `# Server
 NODE_ENV=development
 PORT=3000
 API_PREFIX=api
-DOMAIN_FRONTEND=*
+
+# CORS — '*', a single origin, or a comma-separated list of origins
+CORS_ORIGINS=*
 `;
 
 const DB_ENV: Record<string, string> = {

@@ -8,6 +8,8 @@ import { buildDockerfile }    from './builders/dockerfile';
 import { buildDockerCompose } from './builders/docker-compose';
 import { buildEnvExample }    from './builders/env-example';
 import { buildMainTs }        from './builders/main-ts';
+import { buildHealthController } from './builders/health-controller';
+import { buildReadme }        from './builders/readme';
 import { buildAllClaudeFiles } from './builders/claude-md';
 import { resolveNestVersion, NestVersionProfile } from './nest-version';
 
@@ -234,18 +236,18 @@ export async function generateProject({ projectName, plugins, dbDriver, targetDi
         buildMainTs(manifests, dbDriver, projectName),
     );
 
-    // 6a. Post-process health controller: strip @Public() when auth plugin is absent
-    // (no JWT guard = no need for @Public; missing import would cause TS error)
-    if (!resolvedIds.includes('auth')) {
-        const healthCtrl = path.join(targetDir, 'src', 'app', 'health', 'controllers', 'health.controller.ts');
-        if (fs.existsSync(healthCtrl)) {
-            let src = fs.readFileSync(healthCtrl, 'utf-8');
-            src = src
-                .replace(/^import \{ Public \}.*\n/m, '')
-                .replace(/\s*@Public\(\)\s*\n/g, '\n');
-            fs.writeFileSync(healthCtrl, src);
-        }
-    }
+    // 6a. Health controller: DB ping check + @Public() only wired in when
+    // the plugins backing them (database, auth) are actually active.
+    const healthCtrlPath = path.join(targetDir, 'src', 'app', 'health', 'controllers', 'health.controller.ts');
+    fs.mkdirSync(path.dirname(healthCtrlPath), { recursive: true });
+    fs.writeFileSync(healthCtrlPath, buildHealthController(manifests));
+
+    // Replace the Nest CLI's boilerplate README (framework branding, generic description)
+    // with one describing what this project actually contains.
+    fs.writeFileSync(
+        path.join(targetDir, 'README.md'),
+        buildReadme(manifests, dbDriver, projectName, nestVersion.major),
+    );
 
     // 6b. Post-process seed: strip User/hashPassword imports and seeding when users plugin is absent
     if (!resolvedIds.includes('users') && resolvedIds.includes('database')) {
@@ -254,7 +256,7 @@ export async function generateProject({ projectName, plugins, dbDriver, targetDi
             fs.writeFileSync(seedFile, [
                 `// dotenv must load first — this script runs outside NestJS.`,
                 `import 'dotenv/config';`,
-                `import { AppDataSource } from '../config/data-source';`,
+                `import { AppDataSource } from '../config/data-source.js';`,
                 ``,
                 `async function seed(): Promise<void> {`,
                 `    console.log('\\n▶  Running seed...\\n');`,
@@ -294,7 +296,6 @@ export async function generateProject({ projectName, plugins, dbDriver, targetDi
         '@nestjs/config',
         '@nestjs/swagger',
         '@nestjs/terminus',
-        'typeorm',           // always needed: shared/orm/ and MutationOptions use EntityManager
         'swagger-ui-express',
         'joi',
         'dotenv',
@@ -350,11 +351,12 @@ export async function generateProject({ projectName, plugins, dbDriver, targetDi
         copyDir(coreCommandsDir, path.join(claudeDir, 'commands'));
     }
 
-    // Copy the /db/map command only when database plugin is active
+    // Copy DB-dependent commands (/nestjs/module, /db/map) only when database plugin is active —
+    // /nestjs/module scaffolds TypeORM entities + DtoRepository, meaningless without a DB.
     if (resolvedIds.includes('database')) {
         const dbCommandSrc = path.join(TEMPLATES_DIR, 'core', '.claude', 'commands-db');
         if (fs.existsSync(dbCommandSrc)) {
-            copyDir(dbCommandSrc, path.join(claudeDir, 'commands', 'db'));
+            copyDir(dbCommandSrc, path.join(claudeDir, 'commands'));
         }
     }
 }
