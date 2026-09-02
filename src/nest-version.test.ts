@@ -18,6 +18,11 @@ describe('SUPPORTED_NEST_VERSIONS', () => {
             expect(Object.keys(profile.packages).length).toBeGreaterThan(0);
         }
     });
+
+    it('passes --no-observe only for majors whose `nest new` supports the flag (v12+)', () => {
+        expect(SUPPORTED_NEST_VERSIONS[11].newFlags ?? []).not.toContain('--no-observe');
+        expect(SUPPORTED_NEST_VERSIONS[12].newFlags).toContain('--no-observe');
+    });
 });
 
 describe('detectInstalledNestMajor', () => {

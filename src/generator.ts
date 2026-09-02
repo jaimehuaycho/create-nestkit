@@ -193,8 +193,15 @@ export async function generateProject({ projectName, plugins, dbDriver, targetDi
     // Instead, match whatever NestJS version the user actually has installed, falling back
     // to the newest major the templates are verified against. See src/nest-version.ts.
     const nestVersion = resolveNestVersion();
+    const newFlags    = nestVersion.newFlags ?? [];
+    // Some majors add scaffold prompts create-nestkit doesn't control via a flag (e.g. v12's
+    // ESM/CommonJS choice). Tried suppressing it by closing/piping stdin — doesn't work: the
+    // underlying prompt reads straight from /dev/tty, bypassing whatever we hand it as stdio,
+    // and closing stdin just makes it abort with "User force closed the prompt" instead of
+    // silently picking the highlighted default. So it stays interactive with `stdio: 'inherit'`
+    // — harmless either way, since the templates compile under both ESM and CommonJS (verified).
     execSync(
-        `npx --yes @nestjs/cli@${nestVersion.cliRange} new ${projectName} --skip-install --skip-git --package-manager npm`,
+        `npx --yes @nestjs/cli@${nestVersion.cliRange} new ${projectName} --skip-install --skip-git --package-manager npm ${newFlags.join(' ')}`,
         { cwd: parentDir, stdio: 'inherit' },
     );
 

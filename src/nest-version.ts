@@ -11,9 +11,13 @@ import { execSync } from 'child_process';
 // ---------------------------------------------------------------------------
 
 export interface NestVersionProfile {
-    major:    number;
-    cliRange: string;
-    packages: Record<string, string>;
+    major:      number;
+    cliRange:   string;
+    packages:   Record<string, string>;
+    // Extra flags for `nest new`, for prompts a given major introduces that aren't
+    // covered by the flags create-nestkit already passes (--skip-install etc).
+    // Keeps `nest new` fully non-interactive regardless of the invoking terminal.
+    newFlags?:  string[];
 }
 
 export const SUPPORTED_NEST_VERSIONS: Record<number, NestVersionProfile> = {
@@ -44,6 +48,11 @@ export const SUPPORTED_NEST_VERSIONS: Record<number, NestVersionProfile> = {
             '@nestjs/websockets':         '^12',
             '@nestjs/platform-socket.io': '^12',
         },
+        // v12's `nest new` added two prompts: observability setup, and an ESM/CommonJS
+        // choice that has no flag at all (see generator.ts for why that one is left
+        // interactive). --no-observe kills the first one; v11 doesn't have this flag and
+        // errors on unknown options, so it stays out of its profile.
+        newFlags: ['--no-observe'],
     },
 };
 
