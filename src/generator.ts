@@ -13,7 +13,7 @@ import { resolveNestVersion, NestVersionProfile } from './nest-version';
 
 // Appends the version pinned for this Nest major if the package is one of the
 // tightly-coupled @nestjs/* siblings; otherwise installs whatever npm resolves as latest.
-function pinDep(name: string, nestVersion: NestVersionProfile): string {
+export function pinDep(name: string, nestVersion: NestVersionProfile): string {
     const range = nestVersion.packages[name];
     return range ? `${name}@${range}` : name;
 }

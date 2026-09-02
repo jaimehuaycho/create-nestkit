@@ -53,9 +53,16 @@ export const DEFAULT_NEST_MAJOR = 12;
 // Reads the globally installed `nest` CLI's version (the version the user actually
 // works with day to day). Returns null if the `nest` binary isn't on PATH — that's
 // the common case for a fresh machine, not an error.
-export function detectInstalledNestMajor(): number | null {
+//
+// `runNestVersion` is injectable (defaults to the real `nest --version` call) so tests
+// can simulate "not installed" with a plain throwing function instead of mocking the
+// `child_process` module — a vi.fn() thrown across a module boundary gets misreported
+// as an unhandled error by vitest/tinyspy even when the caller catches it correctly.
+export function detectInstalledNestMajor(
+    runNestVersion: () => string = () => execSync('nest --version', { stdio: ['ignore', 'pipe', 'ignore'] }).toString(),
+): number | null {
     try {
-        const out   = execSync('nest --version', { stdio: ['ignore', 'pipe', 'ignore'] }).toString().trim();
+        const out   = runNestVersion().trim();
         const major = parseInt(out.split('.')[0], 10);
         return Number.isFinite(major) ? major : null;
     } catch {
@@ -63,7 +70,7 @@ export function detectInstalledNestMajor(): number | null {
     }
 }
 
-export function resolveNestVersion(): NestVersionProfile {
+export function resolveNestVersion(detect: () => number | null = detectInstalledNestMajor): NestVersionProfile {
     // Explicit override — useful in CI, or when the global `nest` CLI doesn't match
     // what you want to scaffold for a particular client/project.
     const override = process.env.NESTKIT_NEST_VERSION ? parseInt(process.env.NESTKIT_NEST_VERSION, 10) : null;
@@ -72,7 +79,7 @@ export function resolveNestVersion(): NestVersionProfile {
         return SUPPORTED_NEST_VERSIONS[override];
     }
 
-    const detected = detectInstalledNestMajor();
+    const detected = detect();
 
     if (detected != null) {
         const profile = SUPPORTED_NEST_VERSIONS[detected];

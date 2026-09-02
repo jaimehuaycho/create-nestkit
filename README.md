@@ -1,5 +1,9 @@
 # @darkj/create-nestkit
 
+[![CI](https://github.com/jaimehuaycho/create-nestkit/actions/workflows/ci.yml/badge.svg)](https://github.com/jaimehuaycho/create-nestkit/actions/workflows/ci.yml)
+[![npm version](https://img.shields.io/npm/v/%40darkj%2Fcreate-nestkit.svg)](https://www.npmjs.com/package/@darkj/create-nestkit)
+[![license](https://img.shields.io/npm/l/%40darkj%2Fcreate-nestkit.svg)](./LICENSE)
+
 CLI scaffolder for production-ready NestJS backends. Generates a fully configured project with the plugins you choose.
 
 ## Usage
@@ -24,7 +28,7 @@ Answer the prompts and get a working NestJS project in seconds.
 
 Every generated project includes:
 
-- **NestJS 11** with TypeScript
+- **NestJS 11 or 12** — the CLI detects the NestJS version you have installed globally and scaffolds a matching, verified-compatible project instead of always chasing `@latest` (see [`src/nest-version.ts`](src/nest-version.ts))
 - **Joi** env validation with `.env.example`
 - **Swagger** API documentation at `/api/docs`
 - **Health check** endpoint at `/api/health`
@@ -66,3 +70,11 @@ npm run start:dev
 ```
 
 Swagger: `http://localhost:3000/api/docs`
+
+## Development
+
+```bash
+npm install
+npm run build   # tsc
+npm test        # vitest — plugin resolution, version detection, all file builders
+```
