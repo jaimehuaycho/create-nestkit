@@ -20,7 +20,7 @@ Answer the prompts and get a working NestJS project in seconds.
 |---|---|
 | **Database** | TypeORM with PostgreSQL, MySQL, MariaDB, SQLite, or SQL Server. Includes base entity, migrations setup, and a seed script. |
 | **Auth** | JWT authentication with refresh token rotation. Includes users module, roles module, guards, and decorators. Requires Database. |
-| **Mailer** | Email sending via SMTP or HTTP API (Resend/SendGrid). Port & Adapter pattern. |
+| **Mailer** | Email sending via SMTP or HTTP API. The API adapter works with Resend out of the box; other providers (SendGrid, Mailgun, Postmark) need a one-method change (`buildPayload()`). Port & Adapter pattern. |
 | **WebSockets** | Real-time communication via Socket.io. |
 | **PDF** | PDF generation via Puppeteer. |
 
@@ -65,7 +65,7 @@ Each generated project includes a `.claude/CLAUDE.md` and slash commands:
 cd <project-name>
 cp .env.example .env        # fill in your values
 npm run migration:run       # (if Database plugin)
-npm run seed                # (if Auth plugin) creates root user
+npm run seed                # (if Auth plugin) seeds the root/admin/user roles + a root user
 npm run start:dev
 ```
 
