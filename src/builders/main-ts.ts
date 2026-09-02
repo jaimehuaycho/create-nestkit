@@ -29,7 +29,7 @@ export function buildMainTs(manifests: Manifest[], dbDriver: string, projectName
     lines.push(`import { HttpExceptionFilter } from './shared/filters/index.js';`);
     if (hasAuth)    lines.push(`import { JwtConfig } from './app/auth/config/jwt.config.js';`);
     if (hasDb)      lines.push(`import { DatabaseConfig } from './database/config/database.config.js';`);
-    if (hasObserve) lines.push(`import { ObserveInstrument } from './config/helpers/observe.js';`);
+    if (hasObserve) lines.push(`import { ObserveInstrument } from './plugins/observe/observe.instrument.js';`);
 
     // ── Bootstrap function ────────────────────────────────────────────────
     lines.push(``);

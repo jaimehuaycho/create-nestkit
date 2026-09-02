@@ -61,8 +61,8 @@ export function buildReadme(
     l.push(`src/`);
     l.push(`├── app/        # App-level logic (${hasAuth ? 'auth, ' : ''}health) — no own DB table`);
     if (hasDb) l.push(`├── modules/    # Domain modules — one folder = one DB table`);
-    if (hasMail || hasSock || hasPdf) {
-        const names = [hasMail && 'mailer', hasSock && 'socket', hasPdf && 'pdf'].filter(Boolean).join(', ');
+    if (hasMail || hasSock || hasPdf || hasObserve) {
+        const names = [hasMail && 'mailer', hasSock && 'socket', hasPdf && 'pdf', hasObserve && 'observe'].filter(Boolean).join(', ');
         l.push(`├── plugins/    # Port & Adapter pattern (${names})`);
     }
     if (hasDb) l.push(`├── database/   # TypeORM config, base entity, migrations, seeds`);

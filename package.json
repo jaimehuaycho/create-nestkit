@@ -1,6 +1,6 @@
 {
   "name": "@darkj/create-nestkit",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "CLI to scaffold NestJS projects with a modular, production-ready structure",
   "author": "jaimehuaycho",
   "license": "MIT",

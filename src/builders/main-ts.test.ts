@@ -54,7 +54,7 @@ describe('buildMainTs', () => {
         expect(without).toContain('NestFactory.create(AppModule, { logger });');
 
         const withObserve = buildMainTs([fakeManifest('observe')], 'postgres', 'my-api');
-        expect(withObserve).toContain(`import { ObserveInstrument } from './config/helpers/observe.js';`);
+        expect(withObserve).toContain(`import { ObserveInstrument } from './plugins/observe/observe.instrument.js';`);
         expect(withObserve).toContain('NestFactory.create(AppModule, { logger, instrument: ObserveInstrument });');
         expect(withObserve).toContain('observeConfigured: !!process.env.OBSERVE_APP_KEY,');
     });
