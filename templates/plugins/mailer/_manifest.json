@@ -1,0 +1,27 @@
+{
+  "id": "mailer",
+  "label": "Mailer (SMTP or HTTP API)",
+  "requires": [],
+  "appModule": {
+    "imports": [
+      "import { MailerModule } from './plugins/mailer/mailer.module.js';"
+    ],
+    "modules": ["MailerModule.register()"]
+  },
+  "envVars": [
+    "MAILER_TRANSPORT",
+    "SMTP_HOST",
+    "SMTP_PORT",
+    "SMTP_USER",
+    "SMTP_PASS",
+    "SMTP_FROM",
+    "MAILER_API_URL",
+    "MAILER_API_KEY",
+    "MAILER_FROM"
+  ],
+  "dependencies": {
+    "prod": ["@nestjs-modules/mailer", "nodemailer", "handlebars"],
+    "dev": ["@types/nodemailer"]
+  },
+  "scripts": {}
+}

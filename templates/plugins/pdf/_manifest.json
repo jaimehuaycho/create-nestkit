@@ -1,0 +1,20 @@
+{
+  "id": "pdf",
+  "label": "PDF generation (Puppeteer)",
+  "requires": [],
+  "appModule": {
+    "imports": [
+      "import { PdfModule } from './plugins/pdf/pdf.module.js';"
+    ],
+    "modules": ["PdfModule"]
+  },
+  "envVars": [],
+  "dependencies": {
+    "prod": ["puppeteer"],
+    "dev": []
+  },
+  "scripts": {},
+  "docker": {
+    "base": "debian"
+  }
+}

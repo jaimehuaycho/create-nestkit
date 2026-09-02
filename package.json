@@ -1,0 +1,49 @@
+{
+  "name": "@darkj/create-nestkit",
+  "version": "1.1.0",
+  "description": "CLI to scaffold NestJS projects with a modular, production-ready structure",
+  "author": "jaimehuaycho",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jaimehuaycho/create-nestkit.git"
+  },
+  "bugs": {
+    "url": "https://github.com/jaimehuaycho/create-nestkit/issues"
+  },
+  "homepage": "https://github.com/jaimehuaycho/create-nestkit#readme",
+  "engines": {
+    "node": ">=20"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "bin": {
+    "create-nestkit": "./dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev":   "ts-node src/index.ts",
+    "start": "node dist/index.js",
+    "prepublishOnly": "npm run build"
+  },
+  "files": [
+    "dist",
+    "templates"
+  ],
+  "keywords": [
+    "nestjs",
+    "scaffold",
+    "cli",
+    "generator",
+    "typescript"
+  ],
+  "dependencies": {
+    "@clack/prompts": "^0.7.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.5",
+    "ts-node":     "^10.9.2",
+    "typescript":  "^5.3.3"
+  }
+}

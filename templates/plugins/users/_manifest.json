@@ -1,0 +1,17 @@
+{
+  "id": "users",
+  "label": "Users module",
+  "requires": ["database"],
+  "appModule": {
+    "imports": [
+      "import { UsersModule } from './modules/users/users.module.js';"
+    ],
+    "modules": ["UsersModule"]
+  },
+  "envVars": [],
+  "dependencies": {
+    "prod": [],
+    "dev": []
+  },
+  "scripts": {}
+}

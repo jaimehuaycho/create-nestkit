@@ -1,0 +1,3 @@
+    // -- Plugin: socket -------------------------------------------------------
+    WEBSOCKET_NAMESPACE: Joi.string().default('app'),
+

@@ -1,0 +1,17 @@
+{
+  "id": "roles",
+  "label": "Roles module",
+  "requires": ["database", "users"],
+  "appModule": {
+    "imports": [
+      "import { RolesModule } from './modules/roles/roles.module.js';"
+    ],
+    "modules": ["RolesModule"]
+  },
+  "envVars": [],
+  "dependencies": {
+    "prod": [],
+    "dev": []
+  },
+  "scripts": {}
+}

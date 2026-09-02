@@ -1,0 +1,23 @@
+{
+  "id": "auth",
+  "label": "Authentication (JWT + refresh token rotation)",
+  "requires": ["database", "users", "roles"],
+  "appModule": {
+    "imports": [
+      "import { AuthModule } from './app/auth/auth.module.js';"
+    ],
+    "modules": ["AuthModule"]
+  },
+  "envVars": [
+    "ACTIVE_JWT",
+    "JWT_SECRET",
+    "JWT_TIME_EXPIRE",
+    "JWT_REFRESH_SECRET",
+    "JWT_REFRESH_TIME_EXPIRE"
+  ],
+  "dependencies": {
+    "prod": ["@nestjs/jwt", "@nestjs/passport", "passport", "passport-jwt"],
+    "dev": ["@types/passport-jwt"]
+  },
+  "scripts": {}
+}

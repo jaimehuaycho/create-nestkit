@@ -1,0 +1,14 @@
+# Mailer (set MAILER_TRANSPORT to 'smtp' or 'api')
+MAILER_TRANSPORT=smtp
+
+# SMTP (used when MAILER_TRANSPORT=smtp)
+SMTP_HOST=smtp.example.com
+SMTP_PORT=587
+SMTP_USER=your_email@example.com
+SMTP_PASS=your_password
+SMTP_FROM="My App" <noreply@example.com>
+
+# API e.g. Resend (used when MAILER_TRANSPORT=api)
+# MAILER_API_URL=https://api.resend.com/emails
+# MAILER_API_KEY=your_api_key
+# MAILER_FROM=noreply@yourdomain.com

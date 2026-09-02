@@ -1,0 +1,12 @@
+# Database
+DB_TYPE=postgres
+DB_HOST=localhost
+DB_PORT=5432
+DB_USER=postgres
+DB_PASSWORD=your_password
+DB_NAME=your_database
+DB_LOGS=false
+
+# Seed
+SEED_ROOT_EMAIL=root@app.com
+SEED_ROOT_PASSWORD=Root1234!

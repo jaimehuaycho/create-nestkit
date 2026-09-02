@@ -1,0 +1,19 @@
+{
+  "id": "socket",
+  "label": "WebSockets (Socket.io)",
+  "requires": [],
+  "appModule": {
+    "imports": [
+      "import { SocketModule } from './plugins/socket/socket.module.js';"
+    ],
+    "modules": ["SocketModule"]
+  },
+  "envVars": [
+    "WEBSOCKET_NAMESPACE"
+  ],
+  "dependencies": {
+    "prod": ["@nestjs/websockets", "@nestjs/platform-socket.io", "socket.io"],
+    "dev": ["@types/socket.io"]
+  },
+  "scripts": {}
+}

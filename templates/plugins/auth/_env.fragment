@@ -1,0 +1,7 @@
+    // -- Auth (JWT) -----------------------------------------------------------
+    ACTIVE_JWT:              Joi.boolean().default(true),
+    JWT_SECRET:              Joi.string().required(),
+    JWT_TIME_EXPIRE:         Joi.string().default('15m'),
+    JWT_REFRESH_SECRET:      Joi.string().required(),
+    JWT_REFRESH_TIME_EXPIRE: Joi.string().default('7d'),
+

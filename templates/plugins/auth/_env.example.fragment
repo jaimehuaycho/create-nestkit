@@ -1,0 +1,7 @@
+# Auth (JWT)
+# Generate secrets with: node -e "console.log(require('crypto').randomBytes(64).toString('hex'))"
+ACTIVE_JWT=true
+JWT_SECRET=your_jwt_secret_here
+JWT_TIME_EXPIRE=15m
+JWT_REFRESH_SECRET=your_refresh_secret_here
+JWT_REFRESH_TIME_EXPIRE=7d
