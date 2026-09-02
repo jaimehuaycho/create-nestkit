@@ -19,7 +19,7 @@
     "access": "public"
   },
   "bin": {
-    "create-nestkit": "./dist/index.js"
+    "create-nestkit": "dist/index.js"
   },
   "scripts": {
     "build": "tsc",
