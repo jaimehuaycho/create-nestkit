@@ -98,5 +98,8 @@ export function buildEnvExample(
         }
     }
 
-    return fragments.join('');
+    // Each fragment is one section. Normalize them instead of trusting each file's own leading/trailing blank
+    // lines (some had none, so a section started right under the previous one), and separate sections with
+    // exactly one blank line so the file reads as clearly delimited blocks.
+    return fragments.map(fragment => fragment.trim()).join('\n\n') + '\n';
 }

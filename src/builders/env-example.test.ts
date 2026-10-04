@@ -47,4 +47,36 @@ describe('buildEnvExample', () => {
         const result = buildEnvExample(['mailer'], 'postgres', templatesDir);
         expect(result).toContain('SMTP_HOST=localhost');
     });
+
+    describe('layout', () => {
+        const TEMPLATES = path.join(__dirname, '..', '..', 'templates');
+        const ALL = ['database', 'auth', 'mailer', 'socket', 'pdf', 'observe'];
+
+        it('separates every section with exactly one blank line, in every driver and plugin combination', () => {
+            for (const driver of ['postgres', 'mysql', 'mariadb', 'sqlite', 'mssql']) {
+                for (const ids of [[], ['database'], ['database', 'auth'], ALL]) {
+                    const result = buildEnvExample(ids, driver, TEMPLATES);
+                    expect(result, `${driver} ${ids}`).not.toMatch(/\n\n\n/);          // never two blank lines
+                    expect(result.endsWith('\n') && !result.endsWith('\n\n')).toBe(true); // one final newline
+                    expect(result.startsWith('\n')).toBe(false);
+                }
+            }
+        });
+
+        it('puts a blank line before every section header, so no section starts under the previous variable', () => {
+            const lines = buildEnvExample(ALL, 'postgres', TEMPLATES).split('\n');
+            lines.forEach((line, i) => {
+                const startsComment = line.startsWith('#') && i > 0 && !lines[i - 1].startsWith('#') && lines[i - 1] !== '';
+                expect(startsComment, `line ${i + 1} "${line}" follows "${lines[i - 1]}" without a blank line`).toBe(false);
+            });
+        });
+
+        it('keeps every variable of every selected plugin', () => {
+            const result = buildEnvExample(ALL, 'postgres', TEMPLATES);
+            for (const name of ['NODE_ENV', 'DB_TYPE', 'SEED_ROOT_EMAIL', 'JWT_SECRET', 'MAILER_TRANSPORT', 'OBSERVE_APP_KEY']) {
+                expect(result).toContain(name);
+            }
+        });
+    });
 });
+
