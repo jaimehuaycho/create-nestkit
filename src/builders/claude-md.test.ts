@@ -74,6 +74,10 @@ describe('generated CLAUDE.md content', () => {
         expect(generate([]).get('.claude/CLAUDE.md')).toMatch(/read its rule file first/);
     });
 
+    it('says no migrations ship and that none run automatically', () => {
+        expect(generate(['database']).get('.claude/CLAUDE.md')).toMatch(/none shipped/);
+    });
+
     it('keeps the decision journal and plans folder', () => {
         const files = generate([]);
         expect(files.has('.claude/context/decisions.md')).toBe(true);

@@ -69,4 +69,31 @@ describe('buildReadme', () => {
         expect(result).toContain('WebSockets');
         expect(result).toContain('PDF generation');
     });
+
+    it('gives a first-run sequence that works: generate the initial migration before running it', () => {
+        const md = buildReadme([fakeManifest('database'), fakeManifest('auth')], 'postgres', 'my-api', 12);
+        const generate = md.indexOf('migration:generate -- src/database/migrations/Init');
+        expect(generate).toBeGreaterThan(-1);
+        expect(generate).toBeLessThan(md.indexOf('npm run migration:run'));
+        expect(md.indexOf('npm run migration:run')).toBeLessThan(md.indexOf('npm run seed'));
+        expect(md).not.toContain('apply the initial schema');
+        expect(md).toContain('docker compose up -d db');
+    });
+
+    it('does not tell sqlite users to start a compose database', () => {
+        expect(buildReadme([fakeManifest('database')], 'sqlite', 'my-api', 12)).not.toContain('docker compose up -d db');
+    });
+
+    it('states that no migration or seed runs automatically or ships, only when a database is present', () => {
+        const withDb = buildReadme([fakeManifest('database')], 'postgres', 'my-api', 12);
+        expect(withDb).toMatch(/No migrations or seeds run automatically, and none are shipped/);
+        expect(buildReadme([fakeManifest('mailer')], 'postgres', 'my-api', 12)).not.toMatch(/No migrations/);
+    });
+
+    it('explains the npm audit noise and the install-script policy', () => {
+        const md = buildReadme([], 'postgres', 'my-api', 12);
+        expect(md).toContain('npm audit --omit=dev');
+        expect(md).toContain('allowScripts');
+    });
 });
+

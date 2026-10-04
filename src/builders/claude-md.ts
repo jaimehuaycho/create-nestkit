@@ -56,7 +56,7 @@ export function buildClaudeMd(manifests: Manifest[], dbDriver: string, projectNa
     l.push(``, `## Commands`, `\`\`\`bash`);
     l.push(`npm run start:dev      # development with watch`);
     if (c.hasDb) {
-        l.push(`npm run migration:generate -- src/database/migrations/<name>`);
+        l.push(`npm run migration:generate -- src/database/migrations/<Name>   # none shipped: create yours (e.g. \`Init\`), never auto-run`);
         l.push(`npm run migration:run`);
         l.push(`npm run migration:revert`);
         l.push(c.hasAuth

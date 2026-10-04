@@ -1,4 +1,5 @@
 import { Manifest } from '../generator';
+import { firstRunSteps, renderSteps } from '../next-steps';
 
 const DB_LABELS: Record<string, string> = {
     postgres: 'PostgreSQL',
@@ -44,11 +45,13 @@ export function buildReadme(
 
     l.push(``, `## Getting Started`);
     l.push(`\`\`\`bash`);
-    l.push(`cp .env.example .env   # fill in your values`);
-    if (hasDb)   l.push(`npm run migration:run  # apply the initial schema`);
-    if (hasAuth) l.push(`npm run seed            # create the root/admin/user roles + a root user`);
-    l.push(`npm run start:dev`);
+    l.push(...renderSteps(firstRunSteps({ hasDb, hasAuth, dbDriver })));
     l.push(`\`\`\``);
+    if (hasDb) {
+        l.push(``, `No migrations or seeds run automatically, and none are shipped: the schema is yours to define. Create your`);
+        l.push(`entities, generate a migration from them, and run it. \`migration:generate\` compares your entities with the`);
+        l.push(`live database, so the database must be running first.${hasAuth ? ' The Auth seed is optional and needs the tables to exist.' : ''}`);
+    }
     l.push(``, `Swagger UI: \`http://localhost:3000/api/docs\``);
     l.push(`Health check: \`http://localhost:3000/api/health\``);
     if (hasObserve) {
@@ -63,7 +66,7 @@ export function buildReadme(
     if (hasDb) l.push(`├── modules/    # Domain modules — one folder = one DB table`);
     if (hasMail || hasSock || hasPdf || hasObserve) {
         const names = [hasMail && 'mailer', hasSock && 'socket', hasPdf && 'pdf', hasObserve && 'observe'].filter(Boolean).join(', ');
-        l.push(`├── plugins/    # Port & Adapter pattern (${names})`);
+        l.push(`├── plugins/    # Integrations (${names})`);
     }
     if (hasDb) l.push(`├── database/   # TypeORM config, base entity, migrations, seeds`);
     l.push(`├── config/     # Global config module, env validation`);
@@ -95,6 +98,12 @@ export function buildReadme(
     l.push(`- \`.claude/agents/\` — subagents: \`code-reviewer\` and \`test-runner\``);
     l.push(`- \`.claude/settings.json\` — permissions and hooks (formatting on edit, protection for \`.env\`, lockfiles and applied migrations)`);
     l.push(`- \`.claude/context/\` — project journal; log decisions here as the project evolves past this starting point`);
+
+    l.push(``, `## Notes`);
+    l.push(`- \`npm audit\` may report advisories in development tooling that ships with the Nest scaffold (for example`);
+    l.push(`  \`@nestjs/mau\`). Check what runs in production with \`npm audit --omit=dev\`.`);
+    l.push(`- \`package.json\` has an \`allowScripts\` section listing the dependencies allowed to run install scripts`);
+    l.push(`  (npm 11+). Review it with \`npm approve-scripts --allow-scripts-pending\` when you add native packages.`);
 
     return l.join('\n') + '\n';
 }

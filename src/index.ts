@@ -83,6 +83,8 @@ async function main() {
     }
 
     console.log();
+    // Deliberately minimal: the detailed first-run steps (database, migrations, seed) live in the README that
+    // ships with the project, not here.
     p.outro(
         `Done! Next steps:\n\n` +
         `  cd ${name}\n` +
