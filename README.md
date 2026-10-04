@@ -12,7 +12,34 @@ CLI scaffolder for production-ready NestJS backends. Generates a fully configure
 npx @darkj/create-nestkit
 ```
 
-Answer the prompts and get a working NestJS project in seconds. Requires Node.js 20 or later.
+Answer the prompts and get a working NestJS project in seconds.
+
+## Requirements
+
+Versions below come from the official NestJS 12 documentation ([First steps](https://docs.nestjs.com/first-steps),
+[Migration guide](https://docs.nestjs.com/migration-guide)).
+
+| | Version |
+|---|---|
+| **Node.js to scaffold** (this CLI and `@nestjs/cli` 12) | `^22.22.3`, `^24.15.0` or `>=26`. Node 21, 23 and 25 are not supported: the Nest CLI depends on the Angular devkit. |
+| **Node.js to run a generated app** | `20.19+`, `22.12+` (on the 22 line) or `24+`. The generated `Dockerfile` uses Node 22. |
+| **npm** | The one bundled with those Node versions. npm 11 is recommended: it understands the `allowScripts` policy the generated project declares. |
+| **NestJS** | **12.** The CLI runs `@nestjs/cli@^12` through `npx`, so you do not need Nest installed globally, and the `@nestjs/*` packages are pinned to `^12`. |
+
+If you pick **CommonJS with Jest** at Nest's prompt, note that Jest can load Nest 12's ESM-only packages only on
+**Node 24.9 or later** (older versions fail with `ERR_REQUIRE_ASYNC_MODULE`). The ESM option, which uses Vitest, has no such limit.
+
+### Which NestJS version this scaffold targets
+
+This release scaffolds **NestJS 12 only**, and reproduces what `nest new` 12 generates: TypeScript 6, Prettier 3, oxlint,
+and the module system and test runner you pick at Nest's own prompt (ESM with Vitest, or CommonJS with Jest).
+There is no detection of a globally installed `nest`, and NestJS 11 is not supported.
+
+When NestJS ships a new major, create-nestkit moves to it and publishes a new major version. Older NestJS majors are not
+maintained here: use the matching older release of create-nestkit if you need one.
+
+Other dependencies (TypeORM 1, Joi 18, bcrypt, Puppeteer 25 for PDF, and so on) resolve to their latest version when the
+project is generated. Puppeteer needs Node 22.12+ (its package metadata), which the scaffold requirement above already covers.
 
 ## Plugins
 
@@ -23,13 +50,13 @@ Answer the prompts and get a working NestJS project in seconds. Requires Node.js
 | **Mailer** | Email sending via SMTP or HTTP API. The API adapter works with Resend out of the box; other providers (SendGrid, Mailgun, Postmark) need a one-method change (`buildPayload()`). Port & Adapter pattern. |
 | **WebSockets** | Real-time communication via Socket.io. |
 | **PDF** | PDF generation via Puppeteer. |
-| **Observability** | Tracing and metrics via [Nest Observe](https://observe.nestjs.com) (`@nestjs/observe`). Only offered when NestJS 12+ is in use. Needs a free Nest Observe account. |
+| **Observability** | Tracing and metrics via [Nest Observe](https://observe.nestjs.com) (`@nestjs/observe`). Needs a free Nest Observe account. |
 
 ## What you get
 
 Every generated project includes:
 
-- **NestJS 11 or 12** — the CLI detects the NestJS version you have installed globally and scaffolds a matching, verified-compatible project instead of always chasing `@latest` (see [`src/nest-version.ts`](src/nest-version.ts))
+- **NestJS 12** — `nest new` 12 as the base, with every `@nestjs/*` package pinned to `^12` (see [Requirements](#requirements))
 - **Joi** env validation with `.env.example`
 - **Swagger** API documentation at `/api/docs`
 - **Health check** endpoint at `/api/health`

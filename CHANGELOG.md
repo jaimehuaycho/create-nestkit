@@ -6,7 +6,18 @@ All notable changes to this project are documented here. The format follows
 
 ## Unreleased
 
+### Removed (BREAKING)
+- **NestJS 11 is no longer supported.** The package now targets only the latest NestJS major (12): every project is
+  scaffolded with `@nestjs/cli@^12` and the `@nestjs/*` packages pinned to `^12`. Removed the detection of a globally
+  installed `nest`, the `NESTKIT_NEST_VERSION` override and the manifest field `minNestMajor`; Observability is
+  always offered. When NestJS ships a new major, this package moves to it. Use an older release of create-nestkit
+  for NestJS 11.
+- Minimum Node.js is now what the Nest 12 toolchain declares: `^22.22.3 || ^24.15.0 || >=26` (was `>=20`). CI runs
+  on Node 22 and 24.
+
 ### Added
+- The README has a Requirements section (Node, npm, NestJS) and states which NestJS version the scaffold targets and
+  what it reproduces.
 - Generated projects now ship a complete Claude Code setup in `.claude/`:
   - `settings.json` with a permission baseline (the checks and read-only git run without asking; `.env` files
     cannot be read; migrations, seeding and `git push` ask first) and hooks that format edited files and block
