@@ -4,6 +4,7 @@ import { execSync }       from 'child_process';
 import { buildAppModule }     from './builders/app-module';
 import { buildEnvValidation } from './builders/env-validation';
 import { addPluginScripts, addInstallScriptPolicy } from './builders/package-json';
+import { addNestAssets } from './builders/nest-cli';
 import { buildDockerfile }    from './builders/dockerfile';
 import { buildDockerCompose } from './builders/docker-compose';
 import { buildEnvExample }    from './builders/env-example';
@@ -145,6 +146,8 @@ export interface Manifest {
     // Written into the generated package.json `allowScripts` so npm's install-script policy (advisory
     // today, blocking in a future release) never silently skips them, e.g. puppeteer downloading Chrome.
     allowScripts?: string[];
+    // Non-TypeScript files this plugin needs in dist/ (globs relative to src/), written into nest-cli.json `assets`.
+    nestAssets?: string[];
 }
 
 export function loadManifest(pluginId: string): Manifest {
@@ -298,6 +301,7 @@ export async function generateProject({ projectName, plugins, dbDriver, targetDi
     addPluginScripts(targetDir, manifests);
     // Before `npm install`, so the very first install already follows the policy.
     addInstallScriptPolicy(targetDir, manifests, driver.allowScripts ?? []);
+    addNestAssets(targetDir, manifests);
 
     // 7. Install dependencies
     // Bare names resolve to npm's `latest`; anything listed in nestVersion.packages

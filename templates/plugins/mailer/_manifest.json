@@ -6,7 +6,9 @@
     "imports": [
       "import { MailerModule } from './plugins/mailer/mailer.module.js';"
     ],
-    "modules": ["MailerModule.register()"]
+    "modules": [
+      "MailerModule.register()"
+    ]
   },
   "envVars": [
     "MAILER_TRANSPORT",
@@ -19,9 +21,18 @@
     "MAILER_API_KEY",
     "MAILER_FROM"
   ],
+  "nestAssets": [
+    "plugins/mailer/templates/**/*.hbs"
+  ],
   "dependencies": {
-    "prod": ["@nestjs-modules/mailer", "nodemailer", "handlebars"],
-    "dev": ["@types/nodemailer"]
+    "prod": [
+      "@nestjs-modules/mailer",
+      "nodemailer",
+      "handlebars"
+    ],
+    "dev": [
+      "@types/nodemailer"
+    ]
   },
   "scripts": {}
 }
