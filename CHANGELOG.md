@@ -16,6 +16,14 @@ All notable changes to this project are documented here. The format follows
 - A "Verify your work" section in the generated `CLAUDE.md` so Claude can check its own changes.
 
 ### Changed
+- The generated `package.json` now declares an npm `allowScripts` policy before the first install: it approves the
+  packages that need install scripts for the selected plugins (`puppeteer` downloads Chrome, `better-sqlite3` and
+  `bcrypt` are native) and denies the telemetry script of `@scarf/scarf`. npm 11 only warns today but has announced
+  it will block unreviewed scripts, which would have silently broken the PDF plugin.
+- The first-run steps in the generated README and `CLAUDE.md` are now accurate: start the database, generate your own
+  migration, run it, then optionally seed. The generated README states that no migration or seed runs automatically
+  and none is shipped. The CLI's closing message stays the short classic one; the detail lives in the README. It also explains `npm audit` noise from the Nest
+  scaffold's dev tooling and the `allowScripts` section.
 - The generated slash commands are now skills, renamed: `/nestjs/module` → `/nest-module`,
   `/nestjs/exception` → `/nest-exception`, `/nestjs/plugin` → `/nest-plugin`, `/db/map` → `/db-map`.
   Existing generated projects are not affected.
@@ -34,6 +42,11 @@ All notable changes to this project are documented here. The format follows
   characters or path separators (for example `x; rm -rf ~`) are rejected instead of being passed to the shell.
 
 ### Fixed
+- The generated `.env.example` now separates every section with exactly one blank line. Some sections (for example
+  Auth right after Seed) started directly under the previous variable, which made the file hard to read.
+- The generated README told users to run `npm run migration:run` to "apply the initial schema", but no migration
+  exists, so no tables were created and `npm run seed` failed.
+- The generated README described `plugins/` as Port & Adapter only; socket and observe are plain modules.
 - The generated docs pointed to `src/*/CLAUDE.md` files that were never generated; they now reference the real
   `.claude/rules/` files, and a test checks every generated reference across all plugin combinations.
 - The generated `CLAUDE.md` described the seed as only creating the root user; it now matches what the seed does.
