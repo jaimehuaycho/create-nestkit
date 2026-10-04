@@ -32,7 +32,7 @@ describe('buildEnvExample', () => {
         expect(postgres).toContain('DB_PORT=5432');
 
         const sqlite = buildEnvExample(['database'], 'sqlite', templatesDir);
-        expect(sqlite).toContain('DB_TYPE=sqlite');
+        expect(sqlite).toContain('DB_TYPE=better-sqlite3');
         expect(sqlite).not.toContain('DB_PORT'); // sqlite has no network port
     });
 
@@ -77,6 +77,15 @@ describe('buildEnvExample', () => {
                 expect(result).toContain(name);
             }
         });
+    });
+
+    it('uses driver names TypeORM 1.x accepts (a plain `sqlite` is rejected: "Wrong driver: sqlite given")', () => {
+        const TYPEORM_DRIVERS = ['postgres', 'mysql', 'mariadb', 'mssql', 'better-sqlite3'];
+        const TEMPLATES = path.join(__dirname, '..', '..', 'templates');
+        for (const driver of ['postgres', 'mysql', 'mariadb', 'sqlite', 'mssql']) {
+            const type = /^DB_TYPE=(.+)$/m.exec(buildEnvExample(['database'], driver, TEMPLATES))?.[1];
+            expect(TYPEORM_DRIVERS, `${driver} -> ${type}`).toContain(type);
+        }
     });
 });
 

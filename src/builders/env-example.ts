@@ -55,7 +55,8 @@ SEED_ROOT_PASSWORD=Root1234!
 `,
     sqlite: `
 # Database (SQLite)
-DB_TYPE=sqlite
+# TypeORM 1.x has no 'sqlite' driver: the driver name is better-sqlite3 (the package this project installs).
+DB_TYPE=better-sqlite3
 DB_NAME=./db.sqlite
 DB_LOGS=false
 
