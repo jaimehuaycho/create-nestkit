@@ -39,6 +39,9 @@ describe('generated .claude docs: integrity across every plugin combination', ()
         // Rule docs moved out of src/*/CLAUDE.md; nothing may still point there.
         expect(all).not.toMatch(/src\/[\w/]*CLAUDE\.md/);
 
+        // Real templates use relative `.js` imports; the `src/...` alias fails typecheck on ESM, so never teach it.
+        expect(all).not.toMatch(/from 'src\//);
+
         // Every rule file mentioned anywhere must actually be generated.
         for (const ref of new Set(all.match(/\.claude\/rules\/[\w-]+\.md/g) ?? [])) {
             expect(files.has(ref), `${ref} is referenced but not generated`).toBe(true);

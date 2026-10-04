@@ -52,6 +52,7 @@ export function buildClaudeMd(manifests: Manifest[], dbDriver: string, projectNa
     l.push(`npm run build`);
     l.push(`\`\`\``);
     l.push(`Add a test with each feature. Edited files are formatted automatically by a hook; don't hand-format.`);
+    l.push(`Imports inside \`src/\` are relative and end in \`.js\` (\`'../shared/x/index.js'\`); never the \`src/...\` path alias, which fails typecheck in ESM.`);
 
     l.push(``, `## Commands`, `\`\`\`bash`);
     l.push(`npm run start:dev      # development with watch`);
@@ -139,6 +140,12 @@ export function buildApiPatternsClaudeMd(c: ReturnType<typeof ctx>): string {
 
     l.push(`# API patterns — modules, controllers, exceptions`);
     l.push(``);
+    l.push(`## Imports`);
+    l.push(`Imports inside \`src/\` are **relative and end in \`.js\`** (NodeNext module resolution), e.g.`);
+    l.push(`\`import { X } from '../../../shared/utils/swagger/index.js'\` from \`src/modules/<name>/controllers/\`. Barrels are`);
+    l.push(`\`index.js\`. Do not use the \`src/...\` path alias: it fails typecheck in ESM projects. Snippets below assume a file`);
+    l.push(`three folders deep (\`src/modules/<name>/<layer>/\`); adjust the \`../\` count for your file.`);
+    l.push(``);
 
     if (c.hasDb) {
         // Module anatomy
@@ -187,8 +194,8 @@ export function buildApiPatternsClaudeMd(c: ReturnType<typeof ctx>): string {
     l.push(``, `## Controller Pattern — CRITICAL`);
     if (c.hasAuth) l.push(`Full reference: \`src/modules/users/controllers/users.controller.ts\``, ``);
     l.push(`\`\`\`typescript`);
-    l.push(`import { ApiNotFound, ApiUnauthorized, ApiConflict } from 'src/shared/utils/swagger';`);
-    if (c.hasAuth) l.push(`import { AdminUp, RootOnly, UserUp } from 'src/app/auth/decorators';`);
+    l.push(`import { ApiNotFound, ApiUnauthorized, ApiConflict } from '../../../shared/utils/swagger/index.js';`);
+    if (c.hasAuth) l.push(`import { AdminUp, RootOnly, UserUp } from '../../../app/auth/decorators/index.js';`);
     l.push(`/**`);
     l.push(` * Error dictionary: X_NOT_FOUND 404, X_ALREADY_EXISTS 409`);
     if (c.hasAuth) l.push(` *   INVALID_TOKEN 401, INSUFFICIENT_PERMISSIONS 403`);
@@ -260,7 +267,7 @@ export function buildSharedClaudeMd(c: ReturnType<typeof ctx>): string {
         l.push(``, `## @DtoField and @DtoRelation`);
         l.push(`Decorators that drive both TypeORM SELECT and class-transformer serialization.`);
         l.push(`\`\`\`typescript`);
-        l.push(`import { DtoField, DtoRelation } from 'src/shared/orm';`);
+        l.push(`import { DtoField, DtoRelation } from '../../../shared/orm/index.js';`);
         l.push(``);
         l.push(`export class ProductDto {`);
         l.push(`    @DtoField() id!: number;           // scalar → SELECT product_id`);
@@ -274,7 +281,7 @@ export function buildSharedClaudeMd(c: ReturnType<typeof ctx>): string {
 
         l.push(``, `## FindOptions and MutationOptions`);
         l.push(`\`\`\`typescript`);
-        l.push(`import { FindOptions, MutationOptions } from 'src/shared/dto';`);
+        l.push(`import { FindOptions, MutationOptions } from '../../../shared/dto/index.js';`);
         l.push(``);
         l.push(`// FindOptions`);
         l.push(`{ throwException?: boolean }  // false = return null instead of throwing NotFoundException`);
@@ -305,7 +312,7 @@ export function buildSharedClaudeMd(c: ReturnType<typeof ctx>): string {
     l.push(`Multiple errors for the same status produce a dropdown in Swagger UI.`);
     l.push(`\`\`\`typescript`);
     l.push(`import { ApiNotFound, ApiConflict, ApiUnauthorized, ApiForbidden,`);
-    l.push(`         ApiValidationError, ApiUnprocessableEntity } from 'src/shared/utils/swagger';`);
+    l.push(`         ApiValidationError, ApiUnprocessableEntity } from '../../../shared/utils/swagger/index.js';`);
     l.push(``);
     l.push(`@ApiNotFound({ code: 'PRODUCT_NOT_FOUND', message: 'Product not found.' })`);
     l.push(`@ApiConflict({ code: 'PRODUCT_ALREADY_EXISTS', message: 'A product with this name already exists.' })`);
@@ -331,8 +338,8 @@ export function buildSharedClaudeMd(c: ReturnType<typeof ctx>): string {
     if (c.hasAuth) {
         l.push(``, `## @CurrentUser Decorator`);
         l.push(`\`\`\`typescript`);
-        l.push(`import { CurrentUser } from 'src/shared/decorators';`);
-        l.push(`import type { AuthUser } from 'src/app/auth/strategies/jwt.strategy';`);
+        l.push(`import { CurrentUser } from '../../../shared/decorators/index.js';`);
+        l.push(`import type { AuthUser } from '../../../app/auth/strategies/jwt.strategy.js';`);
         l.push(``);
         l.push(`// In a controller method:`);
         l.push(`async logout(@CurrentUser() user: AuthUser): Promise<void>`);
@@ -365,7 +372,7 @@ export function buildConfigClaudeMd(): string {
 
     l.push(``, `## AppConfig (\`src/config/services/app.config.ts\`)`);
     l.push(`\`\`\`typescript`);
-    l.push(`import { AppConfig } from 'src/config/services/app.config';`);
+    l.push(`import { AppConfig } from '../../../config/services/app.config.js';`);
     l.push(``);
     l.push(`constructor(private readonly config: AppConfig) {}`);
     l.push(`// Available properties:`);
@@ -481,9 +488,9 @@ export function buildAuthClaudeMd(): string {
 
     l.push(``, `## Decorators`);
     l.push(`\`\`\`typescript`);
-    l.push(`import { Public, CurrentUser } from 'src/app/auth/decorators';`);
-    l.push(`import { AdminUp, RootOnly, UserUp, Roles } from 'src/app/auth/decorators';`);
-    l.push(`import type { AuthUser } from 'src/app/auth/strategies/jwt.strategy';`);
+    l.push(`import { Public, CurrentUser } from '../../../app/auth/decorators/index.js';`);
+    l.push(`import { AdminUp, RootOnly, UserUp, Roles } from '../../../app/auth/decorators/index.js';`);
+    l.push(`import type { AuthUser } from '../../../app/auth/strategies/jwt.strategy.js';`);
     l.push(``);
     l.push(`@Public()            // bypass JwtAuthGuard for this route`);
     l.push(`@RootOnly()          // roleId must be 1 (root) — also adds @ApiForbiddenResponse`);
@@ -507,7 +514,7 @@ export function buildAuthClaudeMd(): string {
 
     l.push(``, `## UserForAuthDto — internal auth DTO`);
     l.push(`\`\`\`typescript`);
-    l.push(`import { UserForAuthDto } from 'src/modules/users/dto/user-for-auth.dto';`);
+    l.push(`import { UserForAuthDto } from '../../../modules/users/dto/user-for-auth.dto.js';`);
     l.push(``);
     l.push(`// Used in auth.service.ts — includes password and refreshToken`);
     l.push(`const user = await usersService.findOneByEmail(UserForAuthDto, email, { throwException: false });`);
@@ -519,9 +526,10 @@ export function buildAuthClaudeMd(): string {
 
     l.push(``, `## Token Rotation (refresh)`);
     l.push(`1. Client sends refresh token → server verifies signature and expiry.`);
-    l.push(`2. Server compares \`bcrypt.compare(refreshToken, user.refreshToken)\` (stored as hash).`);
+    l.push(`2. Server compares the token with the stored SHA-256 digest (\`matchesRefreshToken\`, constant time). Never bcrypt: it only reads 72 bytes.`);
     l.push(`3. If match → issue new access + refresh pair, revoke old refresh token.`);
-    l.push(`4. If mismatch (reuse detected) → revoke ALL sessions (\`setRefreshToken(id, null)\`).`);
+    l.push(`4. If mismatch (a rotated-out token is being replayed) → revoke ALL sessions (\`setRefreshToken(id, null)\`).`);
+    l.push(`Each refresh token carries a unique \`jti\`. Passwords are limited to 72 BYTES (\`@MaxBytes\`) because bcrypt ignores the rest.`);
     l.push(`Access tokens expire in \`JWT_TIME_EXPIRE\` (default 15m). Refresh tokens in \`JWT_REFRESH_TIME_EXPIRE\` (default 7d).`);
 
     l.push(``, `## Malleability — Adapting to a Different Users Table`);
@@ -566,7 +574,7 @@ export function buildPluginsClaudeMd(c: ReturnType<typeof ctx>): string {
     if (c.hasMail) {
         l.push(``, `## Mailer Plugin`);
         l.push(`\`\`\`typescript`);
-        l.push(`import { MailerPort, MailOptions } from 'src/plugins/mailer/mailer.port';`);
+        l.push(`import { MailerPort, MailOptions } from '../../../plugins/mailer/mailer.port.js';`);
         l.push(``);
         l.push(`constructor(private readonly mailer: MailerPort) {}`);
         l.push(``);
@@ -579,14 +587,15 @@ export function buildPluginsClaudeMd(c: ReturnType<typeof ctx>): string {
         l.push(`});`);
         l.push(`\`\`\``);
         l.push(`Transport selected at startup via \`MAILER_TRANSPORT=smtp|api\` env var.`);
-        l.push(`- SMTP: uses \`@nestjs-modules/mailer\` with Handlebars for templates.`);
+        l.push(`- SMTP: uses \`@nestjs-modules/mailer\` with Handlebars for templates. Put \`.hbs\` files in`);
+        l.push(`  \`src/plugins/mailer/templates/\`: \`nest-cli.json\` copies them to \`dist/\` (assets), where the module reads them.`);
         l.push(`- API: compatible with Resend by default — override \`buildPayload()\` for other providers.`);
     }
 
     if (c.hasSock) {
         l.push(``, `## Socket Plugin`);
         l.push(`\`\`\`typescript`);
-        l.push(`import { SocketService } from 'src/plugins/socket/socket.service';`);
+        l.push(`import { SocketService } from '../../../plugins/socket/socket.service.js';`);
         l.push(``);
         l.push(`constructor(private readonly socket: SocketService) {}`);
         l.push(``);
@@ -598,7 +607,7 @@ export function buildPluginsClaudeMd(c: ReturnType<typeof ctx>): string {
     if (c.hasPdf) {
         l.push(``, `## PDF Plugin`);
         l.push(`\`\`\`typescript`);
-        l.push(`import { PdfPort, PdfOptions } from 'src/plugins/pdf/pdf.port';`);
+        l.push(`import { PdfPort, PdfOptions } from '../../../plugins/pdf/pdf.port.js';`);
         l.push(``);
         l.push(`constructor(private readonly pdf: PdfPort) {}`);
         l.push(``);
