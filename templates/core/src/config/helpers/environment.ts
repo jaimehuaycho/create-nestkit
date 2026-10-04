@@ -26,6 +26,14 @@ export const environmentSettings: Record<string, EnvSettings> = {
     },
 };
 
+// Runs in main.ts BEFORE Nest builds ConfigModule, so the Joi/Zod env validation has not run yet. Fail here with a
+// clear message instead of letting an unknown NODE_ENV become `undefined` and crash on destructuring.
 export function getEnvSettings(nodeEnv?: string): EnvSettings {
-    return environmentSettings[nodeEnv ?? EnvironmentEnum.DEVELOPMENT];
+    const env      = nodeEnv ?? EnvironmentEnum.DEVELOPMENT;
+    const settings = environmentSettings[env];
+
+    if (!settings) {
+        throw new Error(`Invalid NODE_ENV "${env}". Allowed values: ${Object.keys(environmentSettings).join(', ')}.`);
+    }
+    return settings;
 }
