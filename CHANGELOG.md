@@ -49,10 +49,25 @@ All notable changes to this project are documented here. The format follows
 - CI also runs on `develop` and verifies the package contents.
 
 ### Security
+- **Refresh-token rotation did not work.** Refresh tokens were stored as a bcrypt hash, but bcrypt only reads the first
+  72 bytes and a JWT is ~180, so a token of the same user matched the stored hash of any other: rotated-out tokens kept
+  working and reuse was never detected. They are now stored as a SHA-256 digest (exact, constant-time comparison) and
+  each refresh token carries a unique `jti`. Verified end to end against PostgreSQL: replaying a rotated token returns
+  401 and revokes all sessions.
+- Passwords are limited to 72 **bytes** (new `@MaxBytes` validator) in the register, login, create and update DTOs,
+  because bcrypt silently ignores the rest (bcrypt README, OWASP Password Storage Cheat Sheet). They allowed 255.
 - The project name is now validated before it is used in the `nest new` command. Names containing spaces, shell
   characters or path separators (for example `x; rm -rf ~`) are rejected instead of being passed to the shell.
 
 ### Fixed
+- The SQLite option generated `DB_TYPE=sqlite`, which TypeORM 1.x rejects ("Wrong driver: sqlite given"), so the TypeORM
+  CLI and the app could not start. It is now `better-sqlite3`, the package the project installs.
+- Mailer templates never reached `dist/`: `nest-cli.json` had no `assets` entry. Plugins can now declare `nestAssets`,
+  and the mailer copies `src/plugins/mailer/templates/**/*.hbs`, where its SMTP module reads them.
+- An invalid `NODE_ENV` crashed with `Cannot destructure property 'logger'`. It now fails with
+  `Invalid NODE_ENV "x". Allowed values: ...`.
+- The generated docs taught `from 'src/...'` imports, which fail typecheck in ESM projects. They now show the real style
+  (relative paths ending in `.js`) and say never to use the alias.
 - The generated `.env.example` now separates every section with exactly one blank line. Some sections (for example
   Auth right after Seed) started directly under the previous variable, which made the file hard to read.
 - The generated README told users to run `npm run migration:run` to "apply the initial schema", but no migration
