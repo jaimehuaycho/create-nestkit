@@ -1,8 +1,29 @@
+# Local-only: Claude Code config and scratch space (never GitHub, never npm)
 /.claude
-dist
+/.tmp
+CLAUDE.local.md
+.mcp.json
+
+# Build output and dependencies
+/dist
 node_modules
-*.log
+*.tsbuildinfo
+/coverage
+
+# Secrets (keep .env.example trackable)
 .env
+.env.*
+!.env.example
+.npmrc
+
+# Logs, temp and package tarballs
+*.log
+*.tmp
+*.bak
+*.cache
+*.tgz
+
+# Editors and OS
 .DS_Store
 .idea
 .vscode
@@ -11,9 +32,3 @@ node_modules
 *.sublime-workspace
 *.swp
 *.swo
-*.bak
-*.tmp
-*.cache
-*.tgz
-
-
