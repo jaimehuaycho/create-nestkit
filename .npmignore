@@ -1,5 +1,35 @@
-src/
-tsconfig*.json
-.env*
+# `files` in package.json (dist, templates + `!` exclusions) is the real protection, and npm does NOT
+# apply this file inside the directories `files` includes (verified). This is a second barrier for the
+# repo root only, in case `files` is ever removed. Junk inside templates/ or dist/ is blocked in `files`.
+# Anchored (leading /) on purpose: templates/core/.claude/ is product and must still ship.
+
+# Claude Code: local-only, never public
+/.claude/
+/CLAUDE.md
+/CLAUDE.local.md
+/.mcp.json
+/.worktreeinclude
+
+# Repo tooling
+/.github/
+/.git/
+/.gitignore
+
+# Scratch / temporary
+/.tmp/
+*.tmp
+*.log
+*.tgz
+
+# Source, tests and build config (consumers only need dist/ and templates/)
+/src/
+/dist/**/*.test.*
+/tsconfig*.json
+dist/*.tsbuildinfo
+
+# Secrets and editor/OS junk
+/.env*
+.DS_Store
+.idea/
+.vscode/
 node_modules/
-dist/tsconfig.tsbuildinfo
