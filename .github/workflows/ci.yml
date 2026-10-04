@@ -2,9 +2,16 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    branches: [main, develop]
   pull_request:
-    branches: [main]
+    branches: [main, develop]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   build-and-test:
@@ -22,5 +29,7 @@ jobs:
           cache: npm
 
       - run: npm ci
+      - run: npm run typecheck
       - run: npm run build
       - run: npm test
+      - run: npm run check:package
