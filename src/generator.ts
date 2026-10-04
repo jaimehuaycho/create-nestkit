@@ -5,6 +5,7 @@ import { buildAppModule }     from './builders/app-module';
 import { buildEnvValidation } from './builders/env-validation';
 import { addPluginScripts, addInstallScriptPolicy } from './builders/package-json';
 import { addNestAssets } from './builders/nest-cli';
+import { getPasswordHasher, writePasswordUtil, PasswordHasherId } from './builders/password-hasher';
 import { buildDockerfile }    from './builders/dockerfile';
 import { buildDockerCompose } from './builders/docker-compose';
 import { buildEnvExample }    from './builders/env-example';
@@ -126,6 +127,8 @@ export interface GeneratorOptions {
     plugins:     string[];
     dbDriver:    string;
     targetDir:   string;
+    // Password hashing algorithm, only used when Auth is selected. Defaults to bcrypt.
+    passwordHasher?: PasswordHasherId;
 }
 
 export interface Manifest {
@@ -188,7 +191,7 @@ function copyDir(src: string, dest: string, vars: Record<string, string> = {}) {
     }
 }
 
-export async function generateProject({ projectName, plugins, dbDriver, targetDir }: GeneratorOptions) {
+export async function generateProject({ projectName, plugins, dbDriver, targetDir, passwordHasher }: GeneratorOptions) {
     // First thing, before any filesystem or shell work: projectName is interpolated into the
     // `nest new` command below, and the target must not clobber something that already exists.
     const invalid = validateProjectName(projectName) ?? validateTargetDir(targetDir);
@@ -198,6 +201,8 @@ export async function generateProject({ projectName, plugins, dbDriver, targetDi
     const resolvedIds = resolvePlugins(plugins);
     const manifests   = resolvedIds.map(loadManifest);
     const driver      = DB_DRIVERS[dbDriver] ?? DB_DRIVERS.postgres;
+    // Hashing exists only with the users/auth plugins, so projects without Auth install no hashing library at all.
+    const hasher        = resolvedIds.includes('users') ? getPasswordHasher(passwordHasher) : null;
 
     // 1. Scaffold base project with the official NestJS CLI.
     // Some majors add scaffold prompts create-nestkit doesn't control via a flag (e.g. v12's
@@ -234,6 +239,9 @@ export async function generateProject({ projectName, plugins, dbDriver, targetDi
         }
     }
 
+    // The password hashing module for the chosen algorithm (only with Auth). Same API whichever was chosen.
+    if (hasher) writePasswordUtil(targetDir, hasher);
+
     // 6. Generate dynamic files
     fs.writeFileSync(
         path.join(targetDir, 'src', 'main.ts'),
@@ -250,7 +258,7 @@ export async function generateProject({ projectName, plugins, dbDriver, targetDi
     // with one describing what this project actually contains.
     fs.writeFileSync(
         path.join(targetDir, 'README.md'),
-        buildReadme(manifests, dbDriver, projectName),
+        buildReadme(manifests, dbDriver, projectName, hasher),
     );
 
     // 6b. Post-process seed: strip User/hashPassword imports and seeding when users plugin is absent
@@ -293,7 +301,7 @@ export async function generateProject({ projectName, plugins, dbDriver, targetDi
 
     addPluginScripts(targetDir, manifests);
     // Before `npm install`, so the very first install already follows the policy.
-    addInstallScriptPolicy(targetDir, manifests);
+    addInstallScriptPolicy(targetDir, manifests, hasher?.allowScripts ?? []);
     addNestAssets(targetDir, manifests);
 
     // 7. Install dependencies
@@ -306,13 +314,12 @@ export async function generateProject({ projectName, plugins, dbDriver, targetDi
         'swagger-ui-express',
         'joi',
         'dotenv',
-        'bcrypt',
         'class-validator',
         'class-transformer',
     ].map(d => pinDep(d));
-    const coreDevDeps  = ['@types/bcrypt'];
-    const pluginProd   = manifests.flatMap(m => m.dependencies.prod).map(d => pinDep(d));
-    const pluginDev    = manifests.flatMap(m => m.dependencies.dev);
+    const coreDevDeps  = [] as string[];
+    const pluginProd   = [...manifests.flatMap(m => m.dependencies.prod), ...(hasher?.dependencies.prod ?? [])].map(d => pinDep(d));
+    const pluginDev    = [...manifests.flatMap(m => m.dependencies.dev), ...(hasher?.dependencies.dev ?? [])];
 
     execSync(
         `npm install ${[...coreProdDeps, ...driver.prod, ...pluginProd].join(' ')}`,
@@ -344,17 +351,17 @@ export async function generateProject({ projectName, plugins, dbDriver, targetDi
     );
 
     // 9. Generate the project's .claude/ (rules, settings, tooling) — tailored to selected plugins
-    writeClaudeTooling(targetDir, manifests, dbDriver, projectName);
+    writeClaudeTooling(targetDir, manifests, dbDriver, projectName, hasher?.id);
 }
 
 // Writes everything Claude Code reads from a generated project: the docs built per plugin selection
 // (CLAUDE.md, rules, journal), the enforced settings (permissions + hooks), the static tooling from the
 // core template (skills, subagents, hook scripts) and the .gitignore entries for personal state.
 // Exported so the whole output can be tested without running `nest new` and `npm install`.
-export function writeClaudeTooling(targetDir: string, manifests: Manifest[], dbDriver: string, projectName: string): void {
+export function writeClaudeTooling(targetDir: string, manifests: Manifest[], dbDriver: string, projectName: string, passwordHasher?: PasswordHasherId): void {
     const claudeDir = path.join(targetDir, '.claude');
 
-    const claudeFiles = buildAllClaudeFiles(manifests, dbDriver, projectName);
+    const claudeFiles = buildAllClaudeFiles(manifests, dbDriver, projectName, passwordHasher);
     for (const [relPath, content] of claudeFiles) {
         const fullPath = path.join(targetDir, relPath);
         fs.mkdirSync(path.dirname(fullPath), { recursive: true });

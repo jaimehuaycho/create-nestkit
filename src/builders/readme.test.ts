@@ -95,5 +95,11 @@ describe('buildReadme', () => {
         expect(md).toContain('npm audit --omit=dev');
         expect(md).toContain('allowScripts');
     });
+
+    it('names the password hashing algorithm chosen with Auth', () => {
+        const auth = [fakeManifest('database'), fakeManifest('auth')];
+        expect(buildReadme(auth, 'postgres', 'my-api')).toContain('hashed with **bcrypt**');
+        expect(buildReadme(auth, 'postgres', 'my-api', { label: 'Argon2id' } as never)).toContain('hashed with **Argon2id**');
+    });
 });
 

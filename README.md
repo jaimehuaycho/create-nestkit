@@ -38,7 +38,7 @@ There is no detection of a globally installed `nest`, and NestJS 11 is not suppo
 When NestJS ships a new major, create-nestkit moves to it and publishes a new major version. Older NestJS majors are not
 maintained here: use the matching older release of create-nestkit if you need one.
 
-Other dependencies (TypeORM 1, Joi 18, bcrypt, Puppeteer 25 for PDF, and so on) resolve to their latest version when the
+Other dependencies (TypeORM 1, Joi 18, Puppeteer 25 for PDF, and so on) resolve to their latest version when the
 project is generated. Puppeteer needs Node 22.12+ (its package metadata), which the scaffold requirement above already covers.
 
 ## Plugins
@@ -46,7 +46,7 @@ project is generated. Puppeteer needs Node 22.12+ (its package metadata), which 
 | Plugin | Description |
 |---|---|
 | **Database** | TypeORM with PostgreSQL, MySQL, MariaDB, or SQL Server. Includes base entity, migrations setup, and a seed script. |
-| **Auth** | JWT authentication with refresh token rotation. Includes users module, roles module, guards, and decorators. Requires Database. |
+| **Auth** | JWT authentication with refresh token rotation. Includes users module, roles module, guards, and decorators. Requires Database. You choose the password hashing algorithm when you generate: **bcrypt** (default) or **Argon2id**. Both give the generated code the same `hashPassword` / `comparePassword` functions. |
 | **Mailer** | Email sending via SMTP or HTTP API. The API adapter works with Resend out of the box; other providers (SendGrid, Mailgun, Postmark) need a one-method change (`buildPayload()`). Port & Adapter pattern. |
 | **WebSockets** | Real-time communication via Socket.io. |
 | **PDF** | PDF generation via Puppeteer. |

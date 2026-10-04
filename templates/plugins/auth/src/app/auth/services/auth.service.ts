@@ -11,7 +11,7 @@ import { RefreshDto } from '../dto/refresh.dto.js';
 import { AuthResponseDto } from '../dto/auth-response.dto.js';
 import { JwtPayload } from '../strategies/jwt.strategy.js';
 import { InvalidCredentialsException, InvalidRefreshTokenException } from '../exceptions/index.js';
-import { comparePassword } from '../../../shared/utils/crypto.util.js';
+import { comparePassword } from '../../../shared/security/password.util.js';
 import { hashRefreshToken, matchesRefreshToken } from '../utils/refresh-token.util.js';
 
 @Injectable()

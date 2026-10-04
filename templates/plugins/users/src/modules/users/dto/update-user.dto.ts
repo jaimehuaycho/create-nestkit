@@ -1,7 +1,7 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { IsEmail, IsInt, IsOptional, IsPositive, IsString, MaxLength, MinLength } from 'class-validator';
 import { MaxBytes } from '../../../shared/decorators/index.js';
-import { BCRYPT_MAX_BYTES } from '../../../shared/utils/bytes.util.js';
+import { PASSWORD_MAX_BYTES } from '../../../shared/security/password.util.js';
 
 export class UpdateUserDto {
     @ApiPropertyOptional({ example: 'new@email.com', maxLength: 100 })
@@ -14,7 +14,7 @@ export class UpdateUserDto {
     @IsOptional()
     @IsString()
     @MinLength(6, { message: 'Password must be at least 6 characters.' })
-    @MaxBytes(BCRYPT_MAX_BYTES, { message: 'Password must not exceed 72 bytes.' })
+    @MaxBytes(PASSWORD_MAX_BYTES, { message: `Password must not exceed ${PASSWORD_MAX_BYTES} bytes.` })
     password?: string;
 
     @ApiPropertyOptional({ example: 2, description: 'Role ID (must exist in the roles table)' })

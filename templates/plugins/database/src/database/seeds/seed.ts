@@ -4,7 +4,7 @@ import 'dotenv/config';
 import { AppDataSource } from '../config/data-source.js';
 import { User } from '../../modules/users/entities/user.entity.js';
 import { Role } from '../../modules/roles/entities/role.entity.js';
-import { hashPassword } from '../../shared/utils/crypto.util.js';
+import { hashPassword } from '../../shared/security/password.util.js';
 
 const GREEN  = '\x1b[32m';
 const YELLOW = '\x1b[33m';

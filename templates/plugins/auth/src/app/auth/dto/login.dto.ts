@@ -1,7 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsEmail, IsNotEmpty, IsString } from 'class-validator';
 import { MaxBytes } from '../../../shared/decorators/index.js';
-import { BCRYPT_MAX_BYTES } from '../../../shared/utils/bytes.util.js';
+import { PASSWORD_MAX_BYTES } from '../../../shared/security/password.util.js';
 
 export class LoginDto {
     @ApiProperty({ example: 'user@email.com' })
@@ -11,7 +11,7 @@ export class LoginDto {
     @ApiProperty({ example: 'password123' })
     @IsString()
     @IsNotEmpty({ message: 'Password is required.' })
-    @MaxBytes(BCRYPT_MAX_BYTES, { message: 'Password must not exceed 72 bytes.' })
+    @MaxBytes(PASSWORD_MAX_BYTES, { message: `Password must not exceed ${PASSWORD_MAX_BYTES} bytes.` })
     password: string;
 }
 

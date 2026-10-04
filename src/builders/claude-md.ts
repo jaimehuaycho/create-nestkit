@@ -1,4 +1,5 @@
 import { Manifest } from '../generator';
+import { PasswordHasher, PasswordHasherId, getPasswordHasher } from './password-hasher';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 interface BuildContext {
@@ -11,9 +12,10 @@ interface BuildContext {
     hasObserve: boolean;
     dbDriver:   string;
     name:       string;
+    hasher:     PasswordHasher;   // only meaningful with Auth; defaults to bcrypt
 }
 
-function ctx(manifests: Manifest[], dbDriver: string, projectName: string): BuildContext {
+function ctx(manifests: Manifest[], dbDriver: string, projectName: string, passwordHasher?: PasswordHasherId): BuildContext {
     const ids = new Set(manifests.map(m => m.id));
     return {
         ids,
@@ -25,6 +27,7 @@ function ctx(manifests: Manifest[], dbDriver: string, projectName: string): Buil
         hasObserve: ids.has('observe'),
         dbDriver,
         name: projectName,
+        hasher: getPasswordHasher(passwordHasher),
     };
 }
 
@@ -349,7 +352,7 @@ export function buildSharedClaudeMd(c: ReturnType<typeof ctx>): string {
     }
 
     l.push(``, `## Other Shared Utilities`);
-    l.push(`- \`src/shared/utils/crypto.util.ts\` → \`hashPassword(plain)\`, \`comparePassword(plain, hash)\` (bcrypt)`);
+    if (c.hasAuth) l.push(`- \`src/shared/security/password.util.ts\` → \`hashPassword(plain)\`, \`comparePassword(plain, hash)\`, \`PASSWORD_MAX_BYTES\` (${c.hasher.label}, max ${c.hasher.maxBytes} bytes)`);
     l.push(`- \`src/shared/utils/code-generator.util.ts\` → \`generateCode(length)\` random alphanumeric`);
     l.push(`- \`src/shared/utils/transformers.util.ts\` → \`transformToBoolean(value, name)\` for query params`);
     l.push(`- \`src/shared/dto/error-response.dto.ts\` → Swagger schema for error responses`);
@@ -475,7 +478,7 @@ export function buildDatabaseClaudeMd(dbDriver: string, hasAuth: boolean): strin
 // ────────────────────────────────────────────────────────────────────────────
 // .claude/rules/auth.md — auth patterns (only when auth plugin selected)
 // ────────────────────────────────────────────────────────────────────────────
-export function buildAuthClaudeMd(): string {
+export function buildAuthClaudeMd(hasher: PasswordHasher): string {
     const l: string[] = [];
 
     l.push(`# app/auth/ — Auth Reference`);
@@ -524,12 +527,24 @@ export function buildAuthClaudeMd(): string {
     l.push(`// For public-facing user data always use UserDto.`);
     l.push(`\`\`\``);
 
+    l.push(``, `## Password hashing (${hasher.label})`);
+    l.push(`\`src/shared/security/password.util.ts\` is generated for the algorithm chosen at scaffold time and exports \`hashPassword\`,`);
+    l.push(`\`comparePassword\` and \`PASSWORD_MAX_BYTES\`. Everything else imports only those, so swapping the algorithm means`);
+    l.push(`rewriting that one file (and migrating stored hashes).`);
+    if (hasher.id === 'bcrypt') {
+        l.push(`bcrypt only reads the first 72 BYTES, so \`PASSWORD_MAX_BYTES\` is 72 and the DTOs reject longer passwords with`);
+        l.push(`\`@MaxBytes\` instead of letting them be silently truncated. Cost factor 10 (OWASP minimum).`);
+    } else {
+        l.push(`Argon2id with the library defaults (64 MiB, 3 iterations, 4 lanes; the maintainers advise against changing them).`);
+        l.push(`No truncation, so \`PASSWORD_MAX_BYTES\` (${hasher.maxBytes}) is only a guard against absurdly long inputs, enforced by \`@MaxBytes\`.`);
+    }
+
     l.push(``, `## Token Rotation (refresh)`);
     l.push(`1. Client sends refresh token → server verifies signature and expiry.`);
     l.push(`2. Server compares the token with the stored SHA-256 digest (\`matchesRefreshToken\`, constant time). Never bcrypt: it only reads 72 bytes.`);
     l.push(`3. If match → issue new access + refresh pair, revoke old refresh token.`);
     l.push(`4. If mismatch (a rotated-out token is being replayed) → revoke ALL sessions (\`setRefreshToken(id, null)\`).`);
-    l.push(`Each refresh token carries a unique \`jti\`. Passwords are limited to 72 BYTES (\`@MaxBytes\`) because bcrypt ignores the rest.`);
+    l.push(`Each refresh token carries a unique \`jti\`.`);
     l.push(`Access tokens expire in \`JWT_TIME_EXPIRE\` (default 15m). Refresh tokens in \`JWT_REFRESH_TIME_EXPIRE\` (default 7d).`);
 
     l.push(``, `## Malleability — Adapting to a Different Users Table`);
@@ -723,8 +738,9 @@ export function buildAllClaudeFiles(
     manifests: Manifest[],
     dbDriver:  string,
     projectName: string,
+    passwordHasher?: PasswordHasherId,
 ): Map<string, string> {
-    const c = ctx(manifests, dbDriver, projectName);
+    const c = ctx(manifests, dbDriver, projectName, passwordHasher);
     const files = new Map<string, string>();
 
     // Root file is lean; everything else is a rule scoped by `paths:` so it only loads on demand.
@@ -740,7 +756,7 @@ export function buildAllClaudeFiles(
     if (c.hasDb)      files.set('.claude/rules/database.md',
         withPaths(['src/database/**', 'src/**/*.entity.ts'], buildDatabaseClaudeMd(c.dbDriver, c.hasAuth)));
     if (c.hasAuth)    files.set('.claude/rules/auth.md',
-        withPaths(['src/app/auth/**', 'src/modules/users/**', 'src/modules/roles/**'], buildAuthClaudeMd()));
+        withPaths(['src/app/auth/**', 'src/modules/users/**', 'src/modules/roles/**'], buildAuthClaudeMd(c.hasher)));
     if (c.hasMail || c.hasSock || c.hasPdf || c.hasObserve)
         files.set('.claude/rules/plugins.md', withPaths(['src/plugins/**'], buildPluginsClaudeMd(c)));
 

@@ -76,16 +76,17 @@ describe('addInstallScriptPolicy', () => {
 
     afterEach(() => { if (dir) fs.rmSync(dir, { recursive: true, force: true }); });
 
-    it('always approves the core native packages and denies the telemetry one', () => {
+    it('always approves the core packages and denies the telemetry one', () => {
         write({ name: 'x', scripts: {} });
         addInstallScriptPolicy(dir, []);
-        expect(read().allowScripts).toEqual({ bcrypt: true, esbuild: true, fsevents: true, '@scarf/scarf': false });
+        expect(read().allowScripts).toEqual({ esbuild: true, fsevents: true, '@scarf/scarf': false });
     });
 
     it('adds what plugins and the database driver declare', () => {
         write({ name: 'x' });
         addInstallScriptPolicy(dir, [manifest(['puppeteer']), manifest(undefined)], ['native-pkg']);
-        expect(read().allowScripts).toMatchObject({ puppeteer: true, 'native-pkg': true, bcrypt: true });
+        expect(read().allowScripts).toMatchObject({ puppeteer: true, 'native-pkg': true, esbuild: true });
+        expect(read().allowScripts).not.toHaveProperty('bcrypt');   // only approved when it is the chosen hasher
     });
 
     it('does not approve a plugin package when the plugin is not selected', () => {

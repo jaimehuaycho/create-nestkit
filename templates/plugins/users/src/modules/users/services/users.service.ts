@@ -10,7 +10,7 @@ import { UserNotFoundException, UserAlreadyExistsException } from '../exceptions
 import { DtoRepository } from '../../../shared/orm/index.js';
 import { PaginationResponseDto } from '../../../shared/dto/index.js';
 import { FindOptions, MutationOptions } from '../../../shared/dto/options.dto.js';
-import { hashPassword } from '../../../shared/utils/crypto.util.js';
+import { hashPassword } from '../../../shared/security/password.util.js';
 
 @Injectable()
 export class UsersService {

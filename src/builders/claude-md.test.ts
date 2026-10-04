@@ -60,6 +60,37 @@ describe('generated .claude docs: integrity across every plugin combination', ()
     });
 });
 
+describe('generated auth docs follow the chosen password hasher', () => {
+    const gen = (hasher: 'bcrypt' | 'argon2') =>
+        buildAllClaudeFiles(resolvePlugins(['auth']).map(loadManifest), 'postgres', 'demo-api', hasher);
+
+    it('bcrypt: names it, with the 72-byte limit', () => {
+        const auth = gen('bcrypt').get('.claude/rules/auth.md')!;
+        expect(auth).toContain('## Password hashing (bcrypt)');
+        expect(auth).toMatch(/72 BYTES/);
+        expect(gen('bcrypt').get('.claude/rules/shared.md')).toMatch(/password\.util\.ts.*bcrypt, max 72 bytes/);
+    });
+
+    it('argon2: names Argon2id and says there is no truncation', () => {
+        const auth = gen('argon2').get('.claude/rules/auth.md')!;
+        expect(auth).toContain('## Password hashing (Argon2id)');
+        expect(auth).toMatch(/No truncation/);
+        expect(auth).not.toMatch(/72 BYTES/);
+        expect(gen('argon2').get('.claude/rules/shared.md')).toMatch(/Argon2id, max 256 bytes/);
+    });
+
+    it('never points at the old core crypto.util', () => {
+        for (const h of ['bcrypt', 'argon2'] as const) {
+            expect([...gen(h).values()].join('\n')).not.toContain('crypto.util');
+        }
+    });
+
+    it('defaults to bcrypt when no choice is passed', () => {
+        const files = buildAllClaudeFiles(resolvePlugins(['auth']).map(loadManifest), 'postgres', 'demo-api');
+        expect(files.get('.claude/rules/auth.md')).toContain('(bcrypt)');
+    });
+});
+
 describe('generated CLAUDE.md content', () => {
     it('tells Claude how to verify its work', () => {
         const md = generate([]).get('.claude/CLAUDE.md')!;

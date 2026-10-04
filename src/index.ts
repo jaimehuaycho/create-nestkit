@@ -2,6 +2,7 @@
 import * as p from '@clack/prompts';
 import * as path from 'path';
 import { generateProject, resolvePlugins } from './generator';
+import { PASSWORD_HASHERS, DEFAULT_PASSWORD_HASHER, PasswordHasherId } from './builders/password-hasher';
 import { validateProjectName, validateTargetDir } from './validate';
 
 async function main() {
@@ -49,6 +50,19 @@ async function main() {
         dbDriver = db as string;
     }
 
+    // Auth stores passwords, so ask how to hash them. Both options expose the same functions in the generated project.
+    let passwordHasher: PasswordHasherId = DEFAULT_PASSWORD_HASHER;
+
+    if (resolved.includes('auth')) {
+        const hasher = await p.select({
+            message:      'Password hashing algorithm',
+            initialValue: DEFAULT_PASSWORD_HASHER,
+            options:      Object.values(PASSWORD_HASHERS).map(h => ({ value: h.id, label: h.label, hint: h.hint })),
+        });
+        if (p.isCancel(hasher)) { p.cancel('Cancelled.'); process.exit(0); }
+        passwordHasher = hasher as PasswordHasherId;
+    }
+
     const name      = projectName as string;
     const targetDir = path.join(process.cwd(), name);
 
@@ -61,6 +75,7 @@ async function main() {
             plugins:     selected as string[],
             dbDriver,
             targetDir,
+            passwordHasher,
         });
     } catch (err) {
         p.log.error(String(err));

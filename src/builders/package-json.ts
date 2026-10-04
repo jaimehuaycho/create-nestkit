@@ -29,9 +29,9 @@ export function addPluginScripts(targetDir: string, manifests: Manifest[]): void
 // `allowScripts` and has announced it will block unreviewed ones in a future release. Declaring the policy up
 // front keeps generated projects working then, and removes the warning wall from the first install.
 //
-// Approved: needed for the project to work. Name-only entries on purpose: they survive version bumps.
+// Approved: needed for the project to work. Name-only entries on purpose: they survive version bumps. Packages that only
+// some selections need (puppeteer, the chosen password hasher) are added by the plugin manifest or the registry instead.
 const CORE_ALLOWED_SCRIPTS = [
-    'bcrypt',     // native addon (prebuilt binaries via node-gyp-build)
     'esbuild',    // tsx / vite: verifies its platform binary
     'fsevents',   // macOS file watching for the dev server
 ];

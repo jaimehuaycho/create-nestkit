@@ -2,7 +2,8 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { describe, it, expect } from 'vitest';
 import { hashRefreshToken, matchesRefreshToken } from '../templates/plugins/auth/src/app/auth/utils/refresh-token.util';
-import { byteLength, BCRYPT_MAX_BYTES } from '../templates/core/src/shared/utils/bytes.util';
+import { byteLength } from '../templates/core/src/shared/utils/bytes.util';
+import { PASSWORD_HASHERS } from './builders/password-hasher';
 
 // Tests for the security-sensitive code the auth plugin generates into users' projects.
 const TEMPLATES = path.join(__dirname, '..', 'templates');
@@ -41,7 +42,7 @@ describe('refresh token digest', () => {
     });
 });
 
-describe('byteLength / bcrypt limit', () => {
+describe('byteLength / password limit', () => {
     it('counts UTF-8 bytes, not characters', () => {
         expect(byteLength('abc')).toBe(3);
         expect(byteLength('😀')).toBe(4);
@@ -50,8 +51,9 @@ describe('byteLength / bcrypt limit', () => {
 
     it('a password under 72 characters can still exceed 72 bytes', () => {
         const emojis = '😀'.repeat(20);                     // 20 characters
-        expect(emojis.length).toBeLessThan(BCRYPT_MAX_BYTES);
-        expect(byteLength(emojis)).toBeGreaterThan(BCRYPT_MAX_BYTES);
+        const bcryptMax = PASSWORD_HASHERS.bcrypt.maxBytes;
+        expect(emojis.length).toBeLessThan(bcryptMax);
+        expect(byteLength(emojis)).toBeGreaterThan(bcryptMax);
     });
 });
 
@@ -74,9 +76,11 @@ describe('auth plugin wiring', () => {
         'plugins/auth/src/app/auth/dto/register.dto.ts',
         'plugins/users/src/modules/users/dto/create-user.dto.ts',
         'plugins/users/src/modules/users/dto/update-user.dto.ts',
-    ])('%s limits the password to 72 bytes, not 255 characters', (file) => {
+    ])('%s limits the password in BYTES through the hasher\'s PASSWORD_MAX_BYTES, not 255 characters', (file) => {
         const dto = read(file);
-        expect(dto).toContain('@MaxBytes(BCRYPT_MAX_BYTES');
+        expect(dto).toContain('@MaxBytes(PASSWORD_MAX_BYTES');
+        expect(dto).toContain('shared/security/password.util.js');
+        expect(dto).not.toContain('BCRYPT');
         expect(dto).not.toMatch(/@MaxLength\(255\)\s*\n\s*password/);
     });
 });

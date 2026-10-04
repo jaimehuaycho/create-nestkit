@@ -1,5 +1,6 @@
 import { Manifest } from '../generator';
 import { NEST } from '../nest-version';
+import { PasswordHasher } from './password-hasher';
 import { firstRunSteps, renderSteps } from '../next-steps';
 
 const DB_LABELS: Record<string, string> = {
@@ -16,6 +17,7 @@ export function buildReadme(
     manifests:   Manifest[],
     dbDriver:    string,
     projectName: string,
+    hasher?:     PasswordHasher | null,
 ): string {
     const ids     = new Set(manifests.map(m => m.id));
     const hasDb   = ids.has('database');
@@ -34,7 +36,7 @@ export function buildReadme(
     l.push(``, `## Stack`);
     l.push(`- **NestJS ${NEST.major}** + TypeScript`);
     if (hasDb)   l.push(`- **TypeORM** + ${DB_LABELS[dbDriver] ?? dbDriver}`);
-    if (hasAuth) l.push(`- **JWT auth** with refresh token rotation + role-based guards`);
+    if (hasAuth) l.push(`- **JWT auth** with refresh token rotation + role-based guards, passwords hashed with **${hasher?.label ?? 'bcrypt'}**`);
     if (hasMail) l.push(`- **Mailer** — SMTP or HTTP API (Resend-compatible), Port & Adapter pattern`);
     if (hasSock) l.push(`- **WebSockets** — Socket.io`);
     if (hasPdf)  l.push(`- **PDF generation** — Puppeteer`);
