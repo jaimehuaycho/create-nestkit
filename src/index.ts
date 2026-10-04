@@ -42,7 +42,6 @@ async function main() {
                 { value: 'postgres', label: 'PostgreSQL',   hint: 'recommended' },
                 { value: 'mysql',    label: 'MySQL' },
                 { value: 'mariadb',  label: 'MariaDB' },
-                { value: 'sqlite',   label: 'SQLite',        hint: 'no server needed, great for dev' },
                 { value: 'mssql',    label: 'SQL Server' },
             ],
         });

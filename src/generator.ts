@@ -31,7 +31,6 @@ const TEMPLATES_DIR = path.join(__dirname, '..', 'templates');
 // ---------------------------------------------------------------------------
 interface DbDriver {
     prod:          string[];
-    allowScripts?: string[];   // driver packages with install scripts (native builds)
     dev:           string[];
     composeService?: string;
     composeVolume?:  string;
@@ -112,12 +111,6 @@ const DB_DRIVERS: Record<string, DbDriver> = {
             '      retries: 5',
         ].join('\n'),
         composeVolume: '  db_data:',
-    },
-    sqlite: {
-        prod: ['better-sqlite3'],
-        dev:  ['@types/better-sqlite3'],
-        allowScripts: ['better-sqlite3'],   // native addon: prebuild-install / node-gyp
-        // SQLite needs no compose service — the DB is a local file
     },
     mssql: {
         prod: ['mssql'],
@@ -300,7 +293,7 @@ export async function generateProject({ projectName, plugins, dbDriver, targetDi
 
     addPluginScripts(targetDir, manifests);
     // Before `npm install`, so the very first install already follows the policy.
-    addInstallScriptPolicy(targetDir, manifests, driver.allowScripts ?? []);
+    addInstallScriptPolicy(targetDir, manifests);
     addNestAssets(targetDir, manifests);
 
     // 7. Install dependencies

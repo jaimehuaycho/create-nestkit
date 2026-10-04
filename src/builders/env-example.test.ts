@@ -31,9 +31,9 @@ describe('buildEnvExample', () => {
         expect(postgres).toContain('DB_TYPE=postgres');
         expect(postgres).toContain('DB_PORT=5432');
 
-        const sqlite = buildEnvExample(['database'], 'sqlite', templatesDir);
-        expect(sqlite).toContain('DB_TYPE=better-sqlite3');
-        expect(sqlite).not.toContain('DB_PORT'); // sqlite has no network port
+        const mssql = buildEnvExample(['database'], 'mssql', templatesDir);
+        expect(mssql).toContain('DB_TYPE=mssql');
+        expect(mssql).toContain('DB_PORT=1433');
     });
 
     it('falls back to the postgres block for an unknown driver', () => {
@@ -53,7 +53,7 @@ describe('buildEnvExample', () => {
         const ALL = ['database', 'auth', 'mailer', 'socket', 'pdf', 'observe'];
 
         it('separates every section with exactly one blank line, in every driver and plugin combination', () => {
-            for (const driver of ['postgres', 'mysql', 'mariadb', 'sqlite', 'mssql']) {
+            for (const driver of ['postgres', 'mysql', 'mariadb', 'mssql']) {
                 for (const ids of [[], ['database'], ['database', 'auth'], ALL]) {
                     const result = buildEnvExample(ids, driver, TEMPLATES);
                     expect(result, `${driver} ${ids}`).not.toMatch(/\n\n\n/);          // never two blank lines
@@ -79,10 +79,10 @@ describe('buildEnvExample', () => {
         });
     });
 
-    it('uses driver names TypeORM 1.x accepts (a plain `sqlite` is rejected: "Wrong driver: sqlite given")', () => {
-        const TYPEORM_DRIVERS = ['postgres', 'mysql', 'mariadb', 'mssql', 'better-sqlite3'];
+    it('uses driver names TypeORM 1.x accepts (it rejects unknown ones with "Wrong driver: x given")', () => {
+        const TYPEORM_DRIVERS = ['postgres', 'mysql', 'mariadb', 'mssql'];
         const TEMPLATES = path.join(__dirname, '..', '..', 'templates');
-        for (const driver of ['postgres', 'mysql', 'mariadb', 'sqlite', 'mssql']) {
+        for (const driver of ['postgres', 'mysql', 'mariadb', 'mssql']) {
             const type = /^DB_TYPE=(.+)$/m.exec(buildEnvExample(['database'], driver, TEMPLATES))?.[1];
             expect(TYPEORM_DRIVERS, `${driver} -> ${type}`).toContain(type);
         }

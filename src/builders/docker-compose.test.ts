@@ -7,11 +7,11 @@ const POSTGRES_DRIVER = {
     appDependsOn:   'db:\n        condition: service_healthy',
 };
 
-const SQLITE_DRIVER = {}; // no compose service — file-based DB
+const NO_COMPOSE_DRIVER = {}; // e.g. SQL Server: left to the user, no compose service
 
 describe('buildDockerCompose', () => {
     it('always defines the app service', () => {
-        const result = buildDockerCompose([], SQLITE_DRIVER);
+        const result = buildDockerCompose([], NO_COMPOSE_DRIVER);
         expect(result).toContain('services:');
         expect(result).toContain('  app:');
         expect(result).toContain('build: .');
@@ -32,7 +32,7 @@ describe('buildDockerCompose', () => {
     });
 
     it('adds no db service for a file-based driver even when database is active', () => {
-        const result = buildDockerCompose(['database'], SQLITE_DRIVER);
+        const result = buildDockerCompose(['database'], NO_COMPOSE_DRIVER);
         expect(result).not.toContain('depends_on');
         expect(result).not.toContain('volumes:');
     });

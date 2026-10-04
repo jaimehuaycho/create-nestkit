@@ -84,8 +84,8 @@ describe('addInstallScriptPolicy', () => {
 
     it('adds what plugins and the database driver declare', () => {
         write({ name: 'x' });
-        addInstallScriptPolicy(dir, [manifest(['puppeteer']), manifest(undefined)], ['better-sqlite3']);
-        expect(read().allowScripts).toMatchObject({ puppeteer: true, 'better-sqlite3': true, bcrypt: true });
+        addInstallScriptPolicy(dir, [manifest(['puppeteer']), manifest(undefined)], ['native-pkg']);
+        expect(read().allowScripts).toMatchObject({ puppeteer: true, 'native-pkg': true, bcrypt: true });
     });
 
     it('does not approve a plugin package when the plugin is not selected', () => {

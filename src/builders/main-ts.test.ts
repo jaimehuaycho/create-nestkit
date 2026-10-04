@@ -37,8 +37,8 @@ describe('buildMainTs', () => {
         const withPg = buildMainTs([fakeManifest('database')], 'postgres', 'my-api');
         expect(withPg).toContain(`import { types } from 'pg';`);
 
-        const withSqlite = buildMainTs([fakeManifest('database')], 'sqlite', 'my-api');
-        expect(withSqlite).not.toContain(`from 'pg'`);
+        const withMysql = buildMainTs([fakeManifest('database')], 'mysql', 'my-api');
+        expect(withMysql).not.toContain(`from 'pg'`);
     });
 
     it('every relative import carries an explicit .js extension', () => {

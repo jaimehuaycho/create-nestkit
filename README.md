@@ -45,7 +45,7 @@ project is generated. Puppeteer needs Node 22.12+ (its package metadata), which 
 
 | Plugin | Description |
 |---|---|
-| **Database** | TypeORM with PostgreSQL, MySQL, MariaDB, SQLite, or SQL Server. Includes base entity, migrations setup, and a seed script. |
+| **Database** | TypeORM with PostgreSQL, MySQL, MariaDB, or SQL Server. Includes base entity, migrations setup, and a seed script. |
 | **Auth** | JWT authentication with refresh token rotation. Includes users module, roles module, guards, and decorators. Requires Database. |
 | **Mailer** | Email sending via SMTP or HTTP API. The API adapter works with Resend out of the box; other providers (SendGrid, Mailgun, Postmark) need a one-method change (`buildPayload()`). Port & Adapter pattern. |
 | **WebSockets** | Real-time communication via Socket.io. |

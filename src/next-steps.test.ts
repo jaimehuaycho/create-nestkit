@@ -24,7 +24,7 @@ describe('firstRunSteps', () => {
         for (const dbDriver of ['postgres', 'mysql', 'mariadb']) {
             expect(commands({ hasDb: true, hasAuth: false, dbDriver })).toContain('docker compose up -d db');
         }
-        for (const dbDriver of ['sqlite', 'mssql']) {
+        for (const dbDriver of ['mssql']) {
             expect(commands({ hasDb: true, hasAuth: false, dbDriver })).not.toContain('docker compose up -d db');
         }
     });

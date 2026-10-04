@@ -80,8 +80,8 @@ describe('buildReadme', () => {
         expect(md).toContain('docker compose up -d db');
     });
 
-    it('does not tell sqlite users to start a compose database', () => {
-        expect(buildReadme([fakeManifest('database')], 'sqlite', 'my-api')).not.toContain('docker compose up -d db');
+    it('does not tell SQL Server users to start a compose database (there is no compose service for it)', () => {
+        expect(buildReadme([fakeManifest('database')], 'mssql', 'my-api')).not.toContain('docker compose up -d db');
     });
 
     it('states that no migration or seed runs automatically or ships, only when a database is present', () => {

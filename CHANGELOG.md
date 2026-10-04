@@ -12,6 +12,9 @@ All notable changes to this project are documented here. The format follows
   installed `nest`, the `NESTKIT_NEST_VERSION` override and the manifest field `minNestMajor`; Observability is
   always offered. When NestJS ships a new major, this package moves to it. Use an older release of create-nestkit
   for NestJS 11.
+- **The SQLite database option was removed.** It is meant for local use, not for the projects this scaffold targets. The
+  engines are PostgreSQL, MySQL, MariaDB and SQL Server. (It also could not start: it generated `DB_TYPE=sqlite`, which
+  TypeORM 1.x rejects.)
 - Minimum Node.js is now what the Nest 12 toolchain declares: `^22.22.3 || ^24.15.0 || >=26` (was `>=20`). CI runs
   on Node 22 and 24.
 
@@ -28,8 +31,8 @@ All notable changes to this project are documented here. The format follows
 
 ### Changed
 - The generated `package.json` now declares an npm `allowScripts` policy before the first install: it approves the
-  packages that need install scripts for the selected plugins (`puppeteer` downloads Chrome, `better-sqlite3` and
-  `bcrypt` are native) and denies the telemetry script of `@scarf/scarf`. npm 11 only warns today but has announced
+  packages that need install scripts for the selected plugins (`puppeteer` downloads Chrome, `bcrypt` is
+  native) and denies the telemetry script of `@scarf/scarf`. npm 11 only warns today but has announced
   it will block unreviewed scripts, which would have silently broken the PDF plugin.
 - The first-run steps in the generated README and `CLAUDE.md` are now accurate: start the database, generate your own
   migration, run it, then optionally seed. The generated README states that no migration or seed runs automatically
@@ -60,8 +63,6 @@ All notable changes to this project are documented here. The format follows
   characters or path separators (for example `x; rm -rf ~`) are rejected instead of being passed to the shell.
 
 ### Fixed
-- The SQLite option generated `DB_TYPE=sqlite`, which TypeORM 1.x rejects ("Wrong driver: sqlite given"), so the TypeORM
-  CLI and the app could not start. It is now `better-sqlite3`, the package the project installs.
 - Mailer templates never reached `dist/`: `nest-cli.json` had no `assets` entry. Plugins can now declare `nestAssets`,
   and the mailer copies `src/plugins/mailer/templates/**/*.hbs`, where its SMTP module reads them.
 - An invalid `NODE_ENV` crashed with `Cannot destructure property 'logger'`. It now fails with
