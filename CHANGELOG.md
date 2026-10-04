@@ -11,7 +11,12 @@ All notable changes to this project are documented here. The format follows
   and a package check that fails if internal files would ship or required ones are missing.
 - CI also runs on `develop` and verifies the package contents.
 
+### Security
+- The project name is now validated before it is used in the `nest new` command. Names containing spaces, shell
+  characters or path separators (for example `x; rm -rf ~`) are rejected instead of being passed to the shell.
+
 ### Fixed
+- The CLI refuses to generate into a path that already exists, instead of handing it to `nest new`.
 - The Database slash commands (`/nestjs/module`, `/db/map`) were not tracked in git because of an unanchored
   ignore rule, so a fresh clone would have built projects without them.
 

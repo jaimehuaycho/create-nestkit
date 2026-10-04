@@ -12,6 +12,7 @@ import { buildHealthController } from './builders/health-controller';
 import { buildReadme }        from './builders/readme';
 import { buildAllClaudeFiles } from './builders/claude-md';
 import { resolveNestVersion, NestVersionProfile } from './nest-version';
+import { validateProjectName, validateTargetDir } from './validate';
 
 // Appends the version pinned for this Nest major if the package is one of the
 // tightly-coupled @nestjs/* siblings; otherwise installs whatever npm resolves as latest.
@@ -191,6 +192,11 @@ function copyDir(src: string, dest: string, vars: Record<string, string> = {}) {
 }
 
 export async function generateProject({ projectName, plugins, dbDriver, targetDir, nestVersion: passedNestVersion }: GeneratorOptions) {
+    // First thing, before any filesystem or shell work: projectName is interpolated into the
+    // `nest new` command below, and the target must not clobber something that already exists.
+    const invalid = validateProjectName(projectName) ?? validateTargetDir(targetDir);
+    if (invalid) throw new Error(invalid);
+
     const parentDir   = path.dirname(targetDir);
     const resolvedIds = resolvePlugins(plugins);
     const manifests   = resolvedIds.map(loadManifest);

@@ -3,6 +3,7 @@ import * as p from '@clack/prompts';
 import * as path from 'path';
 import { generateProject, resolvePlugins, loadManifest } from './generator';
 import { resolveNestVersion } from './nest-version';
+import { validateProjectName, validateTargetDir } from './validate';
 
 async function main() {
     console.log();
@@ -11,7 +12,7 @@ async function main() {
     const projectName = await p.text({
         message:     'Project name',
         placeholder: 'my-api',
-        validate:    (v) => !v.trim() ? 'Project name is required.' : undefined,
+        validate:    (v) => validateProjectName(v) ?? validateTargetDir(path.join(process.cwd(), v)),
     });
     if (p.isCancel(projectName)) { p.cancel('Cancelled.'); process.exit(0); }
 

@@ -59,6 +59,40 @@ describe('generateProject — minNestMajor guard', () => {
     });
 });
 
+describe('generateProject — input guards', () => {
+    const base = () => fs.mkdtempSync(path.join(os.tmpdir(), 'nestkit-input-'));
+
+    it('rejects a project name that would reach the shell, before doing any work', async () => {
+        const dir = base();
+        const marker = path.join(dir, 'pwned');
+
+        await expect(generateProject({
+            projectName: `x; touch ${marker}`,
+            plugins:     [],
+            dbDriver:    'postgres',
+            targetDir:   path.join(dir, 'x'),
+            nestVersion: SUPPORTED_NEST_VERSIONS[12],
+        })).rejects.toThrow(/letters, numbers/);
+
+        expect(fs.existsSync(marker)).toBe(false);
+    });
+
+    it('rejects when the target directory already exists, leaving it untouched', async () => {
+        const targetDir = base();
+        fs.writeFileSync(path.join(targetDir, 'keep.txt'), 'mine');
+
+        await expect(generateProject({
+            projectName: 'my-api',
+            plugins:     [],
+            dbDriver:    'postgres',
+            targetDir,
+            nestVersion: SUPPORTED_NEST_VERSIONS[12],
+        })).rejects.toThrow(/already exists/);
+
+        expect(fs.readFileSync(path.join(targetDir, 'keep.txt'), 'utf-8')).toBe('mine');
+    });
+});
+
 describe('resolvePlugins', () => {
     it('returns an empty array when nothing is selected', () => {
         expect(resolvePlugins([])).toEqual([]);
