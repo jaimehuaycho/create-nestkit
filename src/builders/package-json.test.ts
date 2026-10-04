@@ -2,7 +2,7 @@ import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
 import { describe, it, expect, afterEach } from 'vitest';
-import { addPluginScripts } from './package-json';
+import { addPluginScripts, addInstallScriptPolicy } from './package-json';
 import { Manifest } from '../generator';
 
 function fakeManifest(scripts: Record<string, string>): Manifest {
@@ -64,3 +64,41 @@ describe('addPluginScripts', () => {
         expect(JSON.parse(fs.readFileSync(path.join(tmpDir, 'package.json'), 'utf-8')).scripts.typecheck).toBe('custom');
     });
 });
+
+describe('addInstallScriptPolicy', () => {
+    let dir: string;
+    const write = (pkg: object) => {
+        dir = fs.mkdtempSync(path.join(os.tmpdir(), 'pkg-policy-'));
+        fs.writeFileSync(path.join(dir, 'package.json'), JSON.stringify(pkg));
+    };
+    const read = () => JSON.parse(fs.readFileSync(path.join(dir, 'package.json'), 'utf-8'));
+    const manifest = (allowScripts?: string[]): Manifest => ({ ...fakeManifest({}), allowScripts });
+
+    afterEach(() => { if (dir) fs.rmSync(dir, { recursive: true, force: true }); });
+
+    it('always approves the core native packages and denies the telemetry one', () => {
+        write({ name: 'x', scripts: {} });
+        addInstallScriptPolicy(dir, []);
+        expect(read().allowScripts).toEqual({ bcrypt: true, esbuild: true, fsevents: true, '@scarf/scarf': false });
+    });
+
+    it('adds what plugins and the database driver declare', () => {
+        write({ name: 'x' });
+        addInstallScriptPolicy(dir, [manifest(['puppeteer']), manifest(undefined)], ['better-sqlite3']);
+        expect(read().allowScripts).toMatchObject({ puppeteer: true, 'better-sqlite3': true, bcrypt: true });
+    });
+
+    it('does not approve a plugin package when the plugin is not selected', () => {
+        write({ name: 'x' });
+        addInstallScriptPolicy(dir, []);
+        expect(read().allowScripts).not.toHaveProperty('puppeteer');
+    });
+
+    it('never overrides a decision already in package.json, and keeps the other fields', () => {
+        write({ name: 'x', version: '1.0.0', allowScripts: { bcrypt: false, '@scarf/scarf': true } });
+        addInstallScriptPolicy(dir, []);
+        expect(read().allowScripts).toMatchObject({ bcrypt: false, '@scarf/scarf': true });
+        expect(read().version).toBe('1.0.0');
+    });
+});
+

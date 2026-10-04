@@ -24,3 +24,32 @@ export function addPluginScripts(targetDir: string, manifests: Manifest[]): void
 
     fs.writeFileSync(pkgPath, JSON.stringify(pkg, null, 2));
 }
+
+// Install-script policy. npm (11.x) warns about dependencies whose install scripts are not covered by
+// `allowScripts` and has announced it will block unreviewed ones in a future release. Declaring the policy up
+// front keeps generated projects working then, and removes the warning wall from the first install.
+//
+// Approved: needed for the project to work. Name-only entries on purpose: they survive version bumps.
+const CORE_ALLOWED_SCRIPTS = [
+    'bcrypt',     // native addon (prebuilt binaries via node-gyp-build)
+    'esbuild',    // tsx / vite: verifies its platform binary
+    'fsevents',   // macOS file watching for the dev server
+];
+// Denied: not needed, and we choose not to run them.
+const CORE_DENIED_SCRIPTS = [
+    '@scarf/scarf',   // install-time telemetry, pulled in by swagger-ui-dist through @nestjs/swagger
+];
+
+export function addInstallScriptPolicy(targetDir: string, manifests: Manifest[], extraAllowed: string[] = []): void {
+    const pkgPath = path.join(targetDir, 'package.json');
+    const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf-8'));
+
+    const policy: Record<string, boolean> = { ...(pkg.allowScripts ?? {}) };
+    const allowed = [...CORE_ALLOWED_SCRIPTS, ...manifests.flatMap(m => m.allowScripts ?? []), ...extraAllowed];
+
+    for (const name of allowed)             if (!(name in policy)) policy[name] = true;
+    for (const name of CORE_DENIED_SCRIPTS) if (!(name in policy)) policy[name] = false;
+
+    pkg.allowScripts = policy;
+    fs.writeFileSync(pkgPath, JSON.stringify(pkg, null, 2));
+}

@@ -3,7 +3,7 @@ import * as path          from 'path';
 import { execSync }       from 'child_process';
 import { buildAppModule }     from './builders/app-module';
 import { buildEnvValidation } from './builders/env-validation';
-import { addPluginScripts }   from './builders/package-json';
+import { addPluginScripts, addInstallScriptPolicy } from './builders/package-json';
 import { buildDockerfile }    from './builders/dockerfile';
 import { buildDockerCompose } from './builders/docker-compose';
 import { buildEnvExample }    from './builders/env-example';
@@ -30,6 +30,7 @@ const TEMPLATES_DIR = path.join(__dirname, '..', 'templates');
 // ---------------------------------------------------------------------------
 interface DbDriver {
     prod:          string[];
+    allowScripts?: string[];   // driver packages with install scripts (native builds)
     dev:           string[];
     composeService?: string;
     composeVolume?:  string;
@@ -114,6 +115,7 @@ const DB_DRIVERS: Record<string, DbDriver> = {
     sqlite: {
         prod: ['better-sqlite3'],
         dev:  ['@types/better-sqlite3'],
+        allowScripts: ['better-sqlite3'],   // native addon: prebuild-install / node-gyp
         // SQLite needs no compose service — the DB is a local file
     },
     mssql: {
@@ -146,6 +148,10 @@ export interface Manifest {
     // Lowest NestJS major this plugin works with (e.g. @nestjs/observe only exists on 12+).
     // Enforced both here and by index.ts, which shouldn't offer the option in the first place.
     minNestMajor?: number;
+    // Packages (from this plugin's dependencies, direct or transitive) whose install scripts must run.
+    // Written into the generated package.json `allowScripts` so npm's install-script policy (advisory
+    // today, blocking in a future release) never silently skips them, e.g. puppeteer downloading Chrome.
+    allowScripts?: string[];
 }
 
 export function loadManifest(pluginId: string): Manifest {
@@ -314,6 +320,8 @@ export async function generateProject({ projectName, plugins, dbDriver, targetDi
     );
 
     addPluginScripts(targetDir, manifests);
+    // Before `npm install`, so the very first install already follows the policy.
+    addInstallScriptPolicy(targetDir, manifests, driver.allowScripts ?? []);
 
     // 7. Install dependencies
     // Bare names resolve to npm's `latest`; anything listed in nestVersion.packages

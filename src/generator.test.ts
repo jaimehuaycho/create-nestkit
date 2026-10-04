@@ -93,6 +93,16 @@ describe('generateProject — input guards', () => {
     });
 });
 
+describe('manifest allowScripts', () => {
+    it('is a list of package names where declared, and the pdf plugin declares puppeteer (Chrome download)', () => {
+        for (const id of ['database', 'auth', 'mailer', 'socket', 'pdf', 'observe', 'users', 'roles']) {
+            const { allowScripts } = loadManifest(id);
+            if (allowScripts !== undefined) expect(allowScripts.every(n => typeof n === 'string' && n.length > 0)).toBe(true);
+        }
+        expect(loadManifest('pdf').allowScripts).toContain('puppeteer');
+    });
+});
+
 describe('resolvePlugins', () => {
     it('returns an empty array when nothing is selected', () => {
         expect(resolvePlugins([])).toEqual([]);
