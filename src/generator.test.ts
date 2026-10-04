@@ -2,7 +2,7 @@ import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
 import { describe, it, expect } from 'vitest';
-import { loadManifest, resolvePlugins, pinDep, generateProject, Manifest } from './generator';
+import { loadManifest, resolvePlugins, pinDep, generateProject, writeClaudeTooling, Manifest } from './generator';
 import { SUPPORTED_NEST_VERSIONS } from './nest-version';
 
 const PLUGINS_DIR = path.join(__dirname, '..', 'templates', 'plugins');
@@ -132,5 +132,60 @@ describe('pinDep', () => {
     it('leaves an unlisted package name bare so npm resolves it to latest', () => {
         expect(pinDep('typeorm', v11)).toBe('typeorm');
         expect(pinDep('bcrypt', v12)).toBe('bcrypt');
+    });
+});
+
+describe('writeClaudeTooling — full .claude/ output of a generated project', () => {
+    const generate = (selected: string[]) => {
+        const targetDir = fs.mkdtempSync(path.join(os.tmpdir(), 'nestkit-claude-'));
+        fs.writeFileSync(path.join(targetDir, '.gitignore'), '/dist\n/node_modules\n');   // what `nest new` leaves
+        const manifests = resolvePlugins(selected).map(loadManifest);
+        writeClaudeTooling(targetDir, manifests, 'postgres', 'demo-api');
+        const at = (rel: string) => path.join(targetDir, rel);
+        return { targetDir, at, exists: (rel: string) => fs.existsSync(at(rel)) };
+    };
+
+    it('writes docs, settings, hooks, skills, subagents and gitignore entries', () => {
+        const p = generate([]);
+        for (const rel of [
+            '.claude/CLAUDE.md', '.claude/settings.json', '.claude/rules/api-patterns.md',
+            '.claude/hooks/protect-files.cjs', '.claude/hooks/format.cjs',
+            '.claude/agents/code-reviewer.md', '.claude/agents/test-runner.md',
+            '.claude/skills/nest-exception/SKILL.md', '.claude/skills/nest-plugin/SKILL.md',
+            '.claude/context/decisions.md',
+        ]) {
+            expect(p.exists(rel), rel).toBe(true);
+        }
+        expect(JSON.parse(fs.readFileSync(p.at('.claude/settings.json'), 'utf-8')).permissions.deny).toContain('Read(./.env)');
+
+        const gitignore = fs.readFileSync(p.at('.gitignore'), 'utf-8');
+        expect(gitignore.startsWith('/dist\n/node_modules\n')).toBe(true);
+        expect(gitignore).toContain('.claude/settings.local.json');
+    });
+
+    it('ships the database-only skills only with the Database plugin', () => {
+        expect(generate([]).exists('.claude/skills/nest-module')).toBe(false);
+        expect(generate([]).exists('.claude/skills/db-map')).toBe(false);
+        expect(generate(['database']).exists('.claude/skills/nest-module/SKILL.md')).toBe(true);
+        expect(generate(['database']).exists('.claude/skills/db-map/SKILL.md')).toBe(true);
+        expect(generate(['auth']).exists('.claude/skills/nest-module/SKILL.md')).toBe(true);   // auth pulls in database
+    });
+
+    it('every skill, subagent and hook referenced by CLAUDE.md and settings.json exists in the output', () => {
+        const p = generate(['database', 'auth', 'mailer']);
+        const claudeMd = fs.readFileSync(p.at('.claude/CLAUDE.md'), 'utf-8');
+
+        for (const skill of new Set(claudeMd.match(/`\/([a-z-]+)(?: <[^`]*)?`/g)?.map(m => /\/([a-z-]+)/.exec(m)![1]) ?? [])) {
+            expect(p.exists(`.claude/skills/${skill}/SKILL.md`), `skill /${skill}`).toBe(true);
+        }
+        for (const agent of ['code-reviewer', 'test-runner']) {
+            expect(claudeMd).toContain(agent);
+            expect(p.exists(`.claude/agents/${agent}.md`)).toBe(true);
+        }
+
+        const settings = fs.readFileSync(p.at('.claude/settings.json'), 'utf-8');
+        for (const script of new Set(settings.match(/hooks\/[\w.-]+\.cjs/g) ?? [])) {
+            expect(p.exists(`.claude/${script}`), script).toBe(true);
+        }
     });
 });

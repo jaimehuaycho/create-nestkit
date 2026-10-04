@@ -41,14 +41,14 @@ describe('buildReadme', () => {
         expect(gettingStartedAuth).toContain('npm run seed');
     });
 
-    it('lists /nestjs/module and /db/map only when database is active', () => {
+    it('lists /nest-module and /db-map only when database is active', () => {
         const withoutDb = buildReadme([fakeManifest('mailer')], 'postgres', 'my-api', 12);
-        expect(withoutDb).not.toContain('/nestjs/module');
-        expect(withoutDb).not.toContain('/db/map');
+        expect(withoutDb).not.toContain('/nest-module');
+        expect(withoutDb).not.toContain('/db-map');
 
         const withDb = buildReadme([fakeManifest('database')], 'postgres', 'my-api', 12);
-        expect(withDb).toContain('/nestjs/module');
-        expect(withDb).toContain('/db/map');
+        expect(withDb).toContain('/nest-module');
+        expect(withDb).toContain('/db-map');
     });
 
     it('mentions the observe.nestjs.com signup only when observe is active', () => {

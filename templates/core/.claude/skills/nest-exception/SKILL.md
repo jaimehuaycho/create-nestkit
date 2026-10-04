@@ -1,13 +1,22 @@
-# /nestjs/exception <Module> <Type>
+---
+name: nest-exception
+description: Add an exception class to an existing module, following the project exception pattern
+disable-model-invocation: true
+argument-hint: <Module> <Type>
+---
+
+# /nest-exception <Module> <Type>
+
+Arguments: `$ARGUMENTS`
 
 Adds a new exception class to an existing module.
 
 ## Usage
 
 ```
-/nestjs/exception Product NotFound
-/nestjs/exception Order AlreadyExists
-/nestjs/exception User Suspended
+/nest-exception Product NotFound
+/nest-exception Order AlreadyExists
+/nest-exception User Suspended
 ```
 
 ## Generated file

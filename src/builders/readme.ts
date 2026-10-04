@@ -90,8 +90,10 @@ export function buildReadme(
 
     l.push(``, `## Working with Claude Code`);
     l.push(`This project ships with a \`.claude/\` folder tailored to ${anyPlugin ? 'the plugins you selected' : 'this bare scaffold'}:`);
-    l.push(`- \`.claude/rules/\` — the conventions this codebase follows`);
-    l.push(`- \`.claude/commands/\` — slash commands (\`/nestjs/exception\`, \`/nestjs/plugin\`${hasDb ? `, \`/nestjs/module\`, \`/db/map\`` : ''})`);
+    l.push(`- \`.claude/CLAUDE.md\` and \`.claude/rules/\` — what Claude Code needs to know; area rules load only when you work in that area`);
+    l.push(`- \`.claude/skills/\` — slash skills (\`/nest-exception\`, \`/nest-plugin\`${hasDb ? `, \`/nest-module\`, \`/db-map\`` : ''})`);
+    l.push(`- \`.claude/agents/\` — subagents: \`code-reviewer\` and \`test-runner\``);
+    l.push(`- \`.claude/settings.json\` — permissions and hooks (formatting on edit, protection for \`.env\`, lockfiles and applied migrations)`);
     l.push(`- \`.claude/context/\` — project journal; log decisions here as the project evolves past this starting point`);
 
     return l.join('\n') + '\n';

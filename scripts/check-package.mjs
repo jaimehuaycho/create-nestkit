@@ -31,8 +31,12 @@ const required = [
     'dist/generator.js',
     'templates/base/tsconfig.json',
     'templates/core/src/app.module.ts',
-    'templates/core/.claude/commands/nestjs/plugin.md',
-    'templates/core/.claude/commands-db/nestjs/module.md',
+    // What every generated project's .claude/ is built from.
+    'templates/core/.claude/skills/nest-plugin/SKILL.md',
+    'templates/core/.claude/skills-db/nest-module/SKILL.md',
+    'templates/core/.claude/agents/code-reviewer.md',
+    'templates/core/.claude/hooks/protect-files.cjs',
+    'templates/core/.claude/hooks/format.cjs',
     // Every plugin folder must ship its manifest, otherwise resolvePlugins() fails at runtime.
     ...readdirSync('templates/plugins').map((id) => `templates/plugins/${id}/_manifest.json`),
 ];

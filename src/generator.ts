@@ -11,6 +11,8 @@ import { buildMainTs }        from './builders/main-ts';
 import { buildHealthController } from './builders/health-controller';
 import { buildReadme }        from './builders/readme';
 import { buildAllClaudeFiles } from './builders/claude-md';
+import { buildSettingsJson } from './builders/settings-json';
+import { withClaudeIgnores } from './builders/gitignore';
 import { resolveNestVersion, NestVersionProfile } from './nest-version';
 import { validateProjectName, validateTargetDir } from './validate';
 
@@ -360,7 +362,17 @@ export async function generateProject({ projectName, plugins, dbDriver, targetDi
         buildEnvExample(resolvedIds, dbDriver, TEMPLATES_DIR),
     );
 
-    // 9. Generate .claude/ and src/*/CLAUDE.md — tailored to selected plugins
+    // 9. Generate the project's .claude/ (rules, settings, tooling) — tailored to selected plugins
+    writeClaudeTooling(targetDir, manifests, dbDriver, projectName);
+}
+
+// Writes everything Claude Code reads from a generated project: the docs built per plugin selection
+// (CLAUDE.md, rules, journal), the enforced settings (permissions + hooks), the static tooling from the
+// core template (skills, subagents, hook scripts) and the .gitignore entries for personal state.
+// Exported so the whole output can be tested without running `nest new` and `npm install`.
+export function writeClaudeTooling(targetDir: string, manifests: Manifest[], dbDriver: string, projectName: string): void {
+    const claudeDir = path.join(targetDir, '.claude');
+
     const claudeFiles = buildAllClaudeFiles(manifests, dbDriver, projectName);
     for (const [relPath, content] of claudeFiles) {
         const fullPath = path.join(targetDir, relPath);
@@ -368,19 +380,22 @@ export async function generateProject({ projectName, plugins, dbDriver, targetDi
         fs.writeFileSync(fullPath, content);
     }
 
-    // Copy slash commands from the core template (always)
-    const claudeDir       = path.join(targetDir, '.claude');
-    const coreCommandsDir = path.join(TEMPLATES_DIR, 'core', '.claude', 'commands');
-    if (fs.existsSync(coreCommandsDir)) {
-        copyDir(coreCommandsDir, path.join(claudeDir, 'commands'));
+    // Enforced configuration: permissions and hooks (settings.json), plus the static tooling from the
+    // core template: skills, subagents and hook scripts. Underscore-prefixed entries are skipped by copyDir.
+    fs.writeFileSync(path.join(claudeDir, 'settings.json'), buildSettingsJson(manifests));
+
+    const coreClaudeDir = path.join(TEMPLATES_DIR, 'core', '.claude');
+    for (const dir of ['skills', 'agents', 'hooks']) {
+        copyDir(path.join(coreClaudeDir, dir), path.join(claudeDir, dir));
     }
 
-    // Copy DB-dependent commands (/nestjs/module, /db/map) only when database plugin is active —
-    // /nestjs/module scaffolds TypeORM entities + DtoRepository, meaningless without a DB.
-    if (resolvedIds.includes('database')) {
-        const dbCommandSrc = path.join(TEMPLATES_DIR, 'core', '.claude', 'commands-db');
-        if (fs.existsSync(dbCommandSrc)) {
-            copyDir(dbCommandSrc, path.join(claudeDir, 'commands'));
-        }
+    // /nest-module and /db-map scaffold TypeORM entities + DtoRepository: meaningless without a database.
+    if (manifests.some(m => m.id === 'database')) {
+        copyDir(path.join(coreClaudeDir, 'skills-db'), path.join(claudeDir, 'skills'));
     }
+
+    // Keep personal Claude Code state out of git (nest new wrote the base .gitignore).
+    const gitignorePath = path.join(targetDir, '.gitignore');
+    const gitignore     = fs.existsSync(gitignorePath) ? fs.readFileSync(gitignorePath, 'utf-8') : '';
+    fs.writeFileSync(gitignorePath, withClaudeIgnores(gitignore));
 }

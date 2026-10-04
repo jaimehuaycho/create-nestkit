@@ -40,7 +40,7 @@ describe('addPluginScripts', () => {
         expect(pkg.scripts['migration:run']).toBe('npm run typeorm -- migration:run');
     });
 
-    it('is a no-op on the scripts section when no manifest declares any', () => {
+    it('adds only the core scripts when no manifest declares any', () => {
         tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pkg-json-'));
         fs.writeFileSync(
             path.join(tmpDir, 'package.json'),
@@ -50,6 +50,17 @@ describe('addPluginScripts', () => {
         addPluginScripts(tmpDir, [fakeManifest({})]);
 
         const pkg = JSON.parse(fs.readFileSync(path.join(tmpDir, 'package.json'), 'utf-8'));
-        expect(pkg.scripts).toEqual({ build: 'nest build' });
+        expect(pkg.scripts).toEqual({ build: 'nest build', typecheck: 'tsc --noEmit' });
+    });
+
+    it('adds the typecheck script every project gets, without overwriting one that already exists', () => {
+        tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pkg-json-'));
+        fs.writeFileSync(path.join(tmpDir, 'package.json'), JSON.stringify({ name: 'x', scripts: {} }));
+        addPluginScripts(tmpDir, []);
+        expect(JSON.parse(fs.readFileSync(path.join(tmpDir, 'package.json'), 'utf-8')).scripts.typecheck).toBe('tsc --noEmit');
+
+        fs.writeFileSync(path.join(tmpDir, 'package.json'), JSON.stringify({ name: 'x', scripts: { typecheck: 'custom' } }));
+        addPluginScripts(tmpDir, []);
+        expect(JSON.parse(fs.readFileSync(path.join(tmpDir, 'package.json'), 'utf-8')).scripts.typecheck).toBe('custom');
     });
 });

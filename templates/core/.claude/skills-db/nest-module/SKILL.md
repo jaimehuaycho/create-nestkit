@@ -1,12 +1,21 @@
-# /nestjs/module <Name>
+---
+name: nest-module
+description: Scaffold a complete CRUD module (entity, DTOs, service, controller, exceptions) following the project methodology
+disable-model-invocation: true
+argument-hint: <Name>
+---
+
+# /nest-module <Name>
+
+Arguments: `$ARGUMENTS`
 
 Scaffolds a complete CRUD module following the project's methodology.
 
 ## Usage
 
 ```
-/nestjs/module Product
-/nestjs/module OrderItem
+/nest-module Product
+/nest-module OrderItem
 ```
 
 `<Name>` is the singular PascalCase entity name. The module, service, and controller will be pluralized automatically.
@@ -44,7 +53,7 @@ src/modules/{name}s/
 - Add `@ApiProperty({ example: ... })` on every field
 
 ### Service
-- Implement the full generic pattern from CLAUDE.md:
+- Implement the full pattern from `.claude/rules/api-patterns.md`, `.claude/rules/shared.md` and `.claude/rules/database.md`:
   `findAll<T>`, `findOne<T>`, `findOneById<T>`, `create<T>`, `update<T>`, `remove`
 - `existsBy` for existence checks in create/update
 - `repo.create()` + explicit field assignment in create

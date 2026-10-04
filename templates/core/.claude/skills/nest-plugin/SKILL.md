@@ -1,13 +1,22 @@
-# /nestjs/plugin <Name> <Adapter>
+---
+name: nest-plugin
+description: Scaffold a new port/adapter plugin under src/plugins following the project pattern
+disable-model-invocation: true
+argument-hint: <Name> <Adapter>
+---
+
+# /nest-plugin <Name> <Adapter>
+
+Arguments: `$ARGUMENTS`
 
 Scaffolds a new port/adapter plugin following the project's pattern.
 
 ## Usage
 
 ```
-/nestjs/plugin Storage S3
-/nestjs/plugin Payment Stripe
-/nestjs/plugin Cache Redis
+/nest-plugin Storage S3
+/nest-plugin Payment Stripe
+/nest-plugin Cache Redis
 ```
 
 ## What gets created

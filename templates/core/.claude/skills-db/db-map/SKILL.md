@@ -1,4 +1,13 @@
-# /db/map — Map a database schema to modules
+---
+name: db-map
+description: Map a database schema (SQL DDL, entities or a description) to modules, then scaffold them
+disable-model-invocation: true
+argument-hint: [schema-or-path]
+---
+
+# /db-map — Map a database schema to modules
+
+Arguments: `$ARGUMENTS`
 
 You are given a database schema (as SQL DDL, TypeORM entities, a folder of files, or a plain description). Your job is to map it to NestJS modules following the project's methodology exactly.
 
@@ -29,7 +38,7 @@ If a users table exists with different columns than the default (no `email`, dif
 
 ## Step 4 — Generate each module
 
-For each confirmed module, scaffold using `/nestjs/module <Name>`.
+For each confirmed module, scaffold using `/nest-module <Name>`.
 
 For the `users` table (if present and auth is active):
 - Check if the existing `UsersModule` covers it or if it needs adaptation.
@@ -52,7 +61,7 @@ npm run migration:run
 ---
 
 **Key constraints:**
-- Every generated service follows the generic DTO pattern from CLAUDE.md exactly.
+- Every generated service follows the DTO and service patterns in `.claude/rules/api-patterns.md` and `.claude/rules/shared.md` exactly.
 - Every generated controller has the error dictionary JSDoc and variadic swagger decorators.
 - Never inline exception throws — always create exception classes.
 - Soft delete by default; ask before using hard delete.
