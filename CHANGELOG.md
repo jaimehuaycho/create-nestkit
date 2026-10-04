@@ -35,6 +35,13 @@ All notable changes to this project are documented here. The format follows
 - A "Verify your work" section in the generated `CLAUDE.md` so Claude can check its own changes.
 
 ### Changed
+- **Every dependency is now pinned to a major version** (`src/dependencies.ts`): TypeORM `^1`, Joi `^18`, Puppeteer `^25`, and
+  so on. Before, only `@nestjs/*` were pinned and everything else installed whatever was latest on the day, so a new major
+  could change generated projects with no change in this repo (that is how TypeORM 1.x broke the SQLite option). A test
+  fails if the generator installs a package without a range.
+- Removed packages that were not needed: `swagger-ui-express` (`@nestjs/swagger` 12 bundles its UI), `@types/socket.io`
+  (deprecated stub; socket.io ships its own types) and `@types/nodemailer` (nodemailer 10 ships its own types). Projects with
+  the mailer or sockets no longer install them.
 - The generated `package.json` now declares an npm `allowScripts` policy before the first install: it approves the
   packages that need install scripts for the selected plugins (`puppeteer` downloads Chrome, `bcrypt` is
   native) and denies the telemetry script of `@scarf/scarf`. npm 11 only warns today but has announced
