@@ -35,7 +35,7 @@ Every generated project includes:
 - **Health check** endpoint at `/api/health`
 - **HttpExceptionFilter** — consistent `{ statusCode, error, message, path, timestamp }` response format
 - **Dockerfile** + **docker-compose.yml** ready to use
-- **`.claude/`** — Claude Code development rules and slash commands tailored to your selected plugins
+- **`.claude/`** — a ready-to-use Claude Code setup tailored to your selected plugins: lean `CLAUDE.md`, path-scoped rules, skills, subagents, permissions and hooks
 
 ## Generated project structure
 
@@ -51,14 +51,32 @@ src/
 
 ## Claude Code integration
 
-Each generated project includes a `.claude/CLAUDE.md` and slash commands:
+Each generated project ships a `.claude/` folder so Claude Code works well from the first session. It follows
+Claude Code's own guidance: a short always-loaded `CLAUDE.md`, area rules that load only when you touch that
+area, guarantees enforced by settings rather than prose, and a way for Claude to verify its own work.
 
 ```
-/nestjs/module <Name>       — scaffold a complete CRUD module
-/nestjs/exception <M> <T>  — add an exception to a module
-/nestjs/plugin <N> <A>     — scaffold a port/adapter plugin
-/db/map                    — map a database schema to modules (requires Database plugin)
+.claude/
+├── CLAUDE.md          # what Claude needs every session: verify commands, structure, where rules live
+├── rules/             # conventions per area, loaded only when matching files are read or edited
+├── settings.json      # permissions + hooks (shared; personal overrides go in settings.local.json)
+├── hooks/             # format edited files; block edits to .env*, lockfiles, applied migrations
+├── agents/            # code-reviewer (read-only) and test-runner
+├── skills/            # slash skills (below)
+└── context/           # decision journal and saved plans: log why the project drifts from the rules
 ```
+
+Skills:
+
+```
+/nest-module <Name>        — scaffold a complete CRUD module (requires Database plugin)
+/nest-exception <M> <T>    — add an exception to a module
+/nest-plugin <N> <A>       — scaffold a port/adapter plugin
+/db-map                    — map a database schema to modules (requires Database plugin)
+```
+
+Permissions are conservative by default: Claude can run the checks (`typecheck`, `lint`, `test`, `build`) and
+read-only git without asking, cannot read `.env` files, and asks before migrations, seeding or `git push`.
 
 ## After generation
 
