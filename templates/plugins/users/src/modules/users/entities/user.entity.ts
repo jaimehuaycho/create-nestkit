@@ -13,7 +13,7 @@ export class User extends BaseEntitySoftDelete {
     @Column({ name: 'password', type: 'varchar', length: 255 })
     password: string;
 
-    // Stores the bcrypt hash of the active refresh token.
+    // Stores the SHA-256 digest (hex, 64 chars) of the active refresh token.
     // null = no active session (never logged in, logged out, or token revoked).
     @Column({ name: 'refresh_token', type: 'varchar', length: 500, nullable: true })
     refreshToken: string | null;

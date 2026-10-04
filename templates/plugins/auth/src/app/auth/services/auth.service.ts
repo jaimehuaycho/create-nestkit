@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import { Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { UsersService } from '../../../modules/users/services/users.service.js';
@@ -10,7 +11,8 @@ import { RefreshDto } from '../dto/refresh.dto.js';
 import { AuthResponseDto } from '../dto/auth-response.dto.js';
 import { JwtPayload } from '../strategies/jwt.strategy.js';
 import { InvalidCredentialsException, InvalidRefreshTokenException } from '../exceptions/index.js';
-import { comparePassword, hashPassword } from '../../../shared/utils/crypto.util.js';
+import { comparePassword } from '../../../shared/utils/crypto.util.js';
+import { hashRefreshToken, matchesRefreshToken } from '../utils/refresh-token.util.js';
 
 @Injectable()
 export class AuthService {
@@ -62,10 +64,11 @@ export class AuthService {
 
         if (!user || !user.refreshToken) throw new InvalidRefreshTokenException();
 
-        const tokenMatches = await comparePassword(dto.refreshToken, user.refreshToken);
+        const tokenMatches = matchesRefreshToken(dto.refreshToken, user.refreshToken);
 
         if (!tokenMatches) {
-            // Hash mismatch may indicate refresh token reuse — revoke all sessions.
+            // A valid signature that is not the CURRENT token means a rotated-out token is being replayed: treat
+            // it as reuse and revoke all sessions.
             await this.usersService.setRefreshToken(user.id, null);
             throw new InvalidRefreshTokenException();
         }
@@ -87,11 +90,11 @@ export class AuthService {
         const refreshToken = this.jwtService.sign(payload, {
             secret:    this.jwtConfig.refreshSecret,
             expiresIn: this.jwtConfig.refreshExpiresIn as any,
+            jwtid:     randomUUID(),   // unique per issuance: two tokens in the same second must still differ
         });
 
-        // Never store refresh tokens in plain text — treat them like passwords.
-        const hashed = await hashPassword(refreshToken);
-        await this.usersService.setRefreshToken(payload.sub, hashed);
+        // Never store refresh tokens in plain text. Store a SHA-256 digest (see refresh-token.util.ts for why not bcrypt).
+        await this.usersService.setRefreshToken(payload.sub, hashRefreshToken(refreshToken));
 
         return { accessToken, refreshToken };
     }

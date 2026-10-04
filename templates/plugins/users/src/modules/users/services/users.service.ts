@@ -60,9 +60,9 @@ export class UsersService {
 
     // ── Mutations ─────────────────────────────────────────────────────────────
 
-    /** Persists the hashed refresh token. Pass null to close the session (logout / revocation). */
-    async setRefreshToken(userId: number, hashedToken: string | null): Promise<void> {
-        await this.rawRepo.update(userId, { refreshToken: hashedToken });
+    /** Persists the SHA-256 digest of the refresh token. Pass null to close the session (logout / revocation). */
+    async setRefreshToken(userId: number, tokenDigest: string | null): Promise<void> {
+        await this.rawRepo.update(userId, { refreshToken: tokenDigest });
     }
 
     async create<T>(returnDto: new () => T, dto: CreateUserDto, options?: MutationOptions): Promise<T> {

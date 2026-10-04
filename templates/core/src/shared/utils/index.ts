@@ -1,3 +1,4 @@
+export * from './bytes.util.js';
 export * from './code-generator.util.js';
 export * from './crypto.util.js';
 export * from './transformers.util.js';
