@@ -12,7 +12,7 @@ CLI scaffolder for production-ready NestJS backends. Generates a fully configure
 npx @darkj/create-nestkit
 ```
 
-Answer the prompts and get a working NestJS project in seconds.
+Answer the prompts and get a working NestJS project in seconds. Requires Node.js 20 or later.
 
 ## Plugins
 
@@ -23,6 +23,7 @@ Answer the prompts and get a working NestJS project in seconds.
 | **Mailer** | Email sending via SMTP or HTTP API. The API adapter works with Resend out of the box; other providers (SendGrid, Mailgun, Postmark) need a one-method change (`buildPayload()`). Port & Adapter pattern. |
 | **WebSockets** | Real-time communication via Socket.io. |
 | **PDF** | PDF generation via Puppeteer. |
+| **Observability** | Tracing and metrics via [Nest Observe](https://observe.nestjs.com) (`@nestjs/observe`). Only offered when NestJS 12+ is in use. Needs a free Nest Observe account. |
 
 ## What you get
 
@@ -42,7 +43,7 @@ Every generated project includes:
 src/
 ├── app/        # App-level logic (auth, health) — not a DB table
 ├── modules/    # Domain modules — each one maps to a DB table
-├── plugins/    # Port & Adapter pattern (mailer, pdf, socket)
+├── plugins/    # Integrations: Port & Adapter (mailer, pdf) or plain modules (socket, observe)
 ├── database/   # TypeORM setup, base entity, seeds
 ├── config/     # Global ConfigModule, Joi env validation
 └── shared/     # DTOs, ORM utils, filters, decorators, swagger utils
