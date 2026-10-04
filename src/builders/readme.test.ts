@@ -14,48 +14,48 @@ function fakeManifest(id: string): Manifest {
 
 describe('buildReadme', () => {
     it('replaces Nest boilerplate with a bare-scaffold description when no plugins are active', () => {
-        const result = buildReadme([], 'postgres', 'my-api', 11);
+        const result = buildReadme([], 'postgres', 'my-api');
         expect(result).toContain('# my-api');
-        expect(result).toContain('NestJS 11');
+        expect(result).toContain('NestJS 12');
         expect(result).not.toContain('nestjs.com');
         expect(result).not.toContain('TypeORM');
         expect(result).not.toContain('migration:run');
     });
 
     it('mentions the DB driver and migration steps only when database is active', () => {
-        const withDb = buildReadme([fakeManifest('database')], 'mysql', 'my-api', 12);
+        const withDb = buildReadme([fakeManifest('database')], 'mysql', 'my-api');
         expect(withDb).toContain('MySQL');
         expect(withDb).toContain('migration:run');
 
-        const withoutDb = buildReadme([fakeManifest('mailer')], 'mysql', 'my-api', 12);
+        const withoutDb = buildReadme([fakeManifest('mailer')], 'mysql', 'my-api');
         expect(withoutDb).not.toContain('migration:run');
     });
 
     it('surfaces the seed step in Getting Started only when auth is active (bare seed does nothing)', () => {
-        const dbOnly = buildReadme([fakeManifest('database')], 'postgres', 'my-api', 12);
+        const dbOnly = buildReadme([fakeManifest('database')], 'postgres', 'my-api');
         const gettingStartedDbOnly = dbOnly.slice(dbOnly.indexOf('## Getting Started'), dbOnly.indexOf('## Project Structure'));
         expect(gettingStartedDbOnly).not.toContain('npm run seed');
 
-        const withAuth = buildReadme([fakeManifest('database'), fakeManifest('auth')], 'postgres', 'my-api', 12);
+        const withAuth = buildReadme([fakeManifest('database'), fakeManifest('auth')], 'postgres', 'my-api');
         const gettingStartedAuth = withAuth.slice(withAuth.indexOf('## Getting Started'), withAuth.indexOf('## Project Structure'));
         expect(gettingStartedAuth).toContain('npm run seed');
     });
 
     it('lists /nest-module and /db-map only when database is active', () => {
-        const withoutDb = buildReadme([fakeManifest('mailer')], 'postgres', 'my-api', 12);
+        const withoutDb = buildReadme([fakeManifest('mailer')], 'postgres', 'my-api');
         expect(withoutDb).not.toContain('/nest-module');
         expect(withoutDb).not.toContain('/db-map');
 
-        const withDb = buildReadme([fakeManifest('database')], 'postgres', 'my-api', 12);
+        const withDb = buildReadme([fakeManifest('database')], 'postgres', 'my-api');
         expect(withDb).toContain('/nest-module');
         expect(withDb).toContain('/db-map');
     });
 
     it('mentions the observe.nestjs.com signup only when observe is active', () => {
-        const without = buildReadme([fakeManifest('database')], 'postgres', 'my-api', 12);
+        const without = buildReadme([fakeManifest('database')], 'postgres', 'my-api');
         expect(without).not.toContain('observe.nestjs.com');
 
-        const withObserve = buildReadme([fakeManifest('observe')], 'postgres', 'my-api', 12);
+        const withObserve = buildReadme([fakeManifest('observe')], 'postgres', 'my-api');
         expect(withObserve).toContain('observe.nestjs.com');
         expect(withObserve).toContain('OBSERVE_APP_KEY');
     });
@@ -71,7 +71,7 @@ describe('buildReadme', () => {
     });
 
     it('gives a first-run sequence that works: generate the initial migration before running it', () => {
-        const md = buildReadme([fakeManifest('database'), fakeManifest('auth')], 'postgres', 'my-api', 12);
+        const md = buildReadme([fakeManifest('database'), fakeManifest('auth')], 'postgres', 'my-api');
         const generate = md.indexOf('migration:generate -- src/database/migrations/Init');
         expect(generate).toBeGreaterThan(-1);
         expect(generate).toBeLessThan(md.indexOf('npm run migration:run'));
@@ -81,17 +81,17 @@ describe('buildReadme', () => {
     });
 
     it('does not tell sqlite users to start a compose database', () => {
-        expect(buildReadme([fakeManifest('database')], 'sqlite', 'my-api', 12)).not.toContain('docker compose up -d db');
+        expect(buildReadme([fakeManifest('database')], 'sqlite', 'my-api')).not.toContain('docker compose up -d db');
     });
 
     it('states that no migration or seed runs automatically or ships, only when a database is present', () => {
-        const withDb = buildReadme([fakeManifest('database')], 'postgres', 'my-api', 12);
+        const withDb = buildReadme([fakeManifest('database')], 'postgres', 'my-api');
         expect(withDb).toMatch(/No migrations or seeds run automatically, and none are shipped/);
-        expect(buildReadme([fakeManifest('mailer')], 'postgres', 'my-api', 12)).not.toMatch(/No migrations/);
+        expect(buildReadme([fakeManifest('mailer')], 'postgres', 'my-api')).not.toMatch(/No migrations/);
     });
 
     it('explains the npm audit noise and the install-script policy', () => {
-        const md = buildReadme([], 'postgres', 'my-api', 12);
+        const md = buildReadme([], 'postgres', 'my-api');
         expect(md).toContain('npm audit --omit=dev');
         expect(md).toContain('allowScripts');
     });

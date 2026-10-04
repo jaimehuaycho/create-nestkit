@@ -3,7 +3,7 @@ import * as os from 'os';
 import * as path from 'path';
 import { describe, it, expect } from 'vitest';
 import { loadManifest, resolvePlugins, pinDep, generateProject, writeClaudeTooling, Manifest } from './generator';
-import { SUPPORTED_NEST_VERSIONS } from './nest-version';
+import { NEST } from './nest-version';
 
 const PLUGINS_DIR = path.join(__dirname, '..', 'templates', 'plugins');
 const ALL_PLUGIN_IDS = fs.readdirSync(PLUGINS_DIR);
@@ -38,25 +38,6 @@ describe('loadManifest', () => {
         }
     });
 
-    it('observe declares minNestMajor 12 (the @nestjs/observe package does not exist before v12)', () => {
-        expect(loadManifest('observe').minNestMajor).toBe(12);
-    });
-});
-
-describe('generateProject — minNestMajor guard', () => {
-    it('rejects before touching the filesystem when a selected plugin needs a newer Nest major', async () => {
-        const targetDir = path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'nestkit-guard-')), 'my-api');
-
-        await expect(generateProject({
-            projectName: 'my-api',
-            plugins:     ['observe'],
-            dbDriver:    'postgres',
-            targetDir,
-            nestVersion: SUPPORTED_NEST_VERSIONS[11], // observe needs 12+
-        })).rejects.toThrow(/observe.*requires NestJS 12\+.*v11/);
-
-        expect(fs.existsSync(targetDir)).toBe(false);
-    });
 });
 
 describe('generateProject — input guards', () => {
@@ -71,7 +52,6 @@ describe('generateProject — input guards', () => {
             plugins:     [],
             dbDriver:    'postgres',
             targetDir:   path.join(dir, 'x'),
-            nestVersion: SUPPORTED_NEST_VERSIONS[12],
         })).rejects.toThrow(/letters, numbers/);
 
         expect(fs.existsSync(marker)).toBe(false);
@@ -86,7 +66,6 @@ describe('generateProject — input guards', () => {
             plugins:     [],
             dbDriver:    'postgres',
             targetDir,
-            nestVersion: SUPPORTED_NEST_VERSIONS[12],
         })).rejects.toThrow(/already exists/);
 
         expect(fs.readFileSync(path.join(targetDir, 'keep.txt'), 'utf-8')).toBe('mine');
@@ -131,17 +110,14 @@ describe('resolvePlugins', () => {
 });
 
 describe('pinDep', () => {
-    const v11 = SUPPORTED_NEST_VERSIONS[11];
-    const v12 = SUPPORTED_NEST_VERSIONS[12];
-
-    it('pins a tightly-coupled @nestjs/* package to the version matching the resolved major', () => {
-        expect(pinDep('@nestjs/swagger', v11)).toBe('@nestjs/swagger@^11');
-        expect(pinDep('@nestjs/swagger', v12)).toBe('@nestjs/swagger@^12');
+    it('pins a tightly-coupled @nestjs/* package to the target Nest major', () => {
+        expect(pinDep('@nestjs/swagger')).toBe(`@nestjs/swagger@^${NEST.major}`);
+        expect(pinDep('@nestjs/typeorm')).toBe(`@nestjs/typeorm@^${NEST.major}`);
     });
 
     it('leaves an unlisted package name bare so npm resolves it to latest', () => {
-        expect(pinDep('typeorm', v11)).toBe('typeorm');
-        expect(pinDep('bcrypt', v12)).toBe('bcrypt');
+        expect(pinDep('typeorm')).toBe('typeorm');
+        expect(pinDep('bcrypt')).toBe('bcrypt');
     });
 });
 

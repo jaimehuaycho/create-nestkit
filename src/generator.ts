@@ -13,13 +13,13 @@ import { buildReadme }        from './builders/readme';
 import { buildAllClaudeFiles } from './builders/claude-md';
 import { buildSettingsJson } from './builders/settings-json';
 import { withClaudeIgnores } from './builders/gitignore';
-import { resolveNestVersion, NestVersionProfile } from './nest-version';
+import { NEST } from './nest-version';
 import { validateProjectName, validateTargetDir } from './validate';
 
-// Appends the version pinned for this Nest major if the package is one of the
-// tightly-coupled @nestjs/* siblings; otherwise installs whatever npm resolves as latest.
-export function pinDep(name: string, nestVersion: NestVersionProfile): string {
-    const range = nestVersion.packages[name];
+// Appends the range pinned for the target Nest major if the package is one of the tightly-coupled
+// @nestjs/* siblings; otherwise installs whatever npm resolves as latest.
+export function pinDep(name: string): string {
+    const range = NEST.packages[name];
     return range ? `${name}@${range}` : name;
 }
 
@@ -132,10 +132,6 @@ export interface GeneratorOptions {
     plugins:     string[];
     dbDriver:    string;
     targetDir:   string;
-    // Optional: pass the already-resolved profile when the caller needed it earlier anyway
-    // (e.g. index.ts uses it to decide which plugins to even offer). Falls back to resolving
-    // it here so existing callers/tests that don't pass it keep working unchanged.
-    nestVersion?: NestVersionProfile;
 }
 
 export interface Manifest {
@@ -145,9 +141,6 @@ export interface Manifest {
     dependencies: { prod: string[]; dev: string[] };
     scripts:  Record<string, string>;
     docker?:  { base?: 'alpine' | 'debian' };
-    // Lowest NestJS major this plugin works with (e.g. @nestjs/observe only exists on 12+).
-    // Enforced both here and by index.ts, which shouldn't offer the option in the first place.
-    minNestMajor?: number;
     // Packages (from this plugin's dependencies, direct or transitive) whose install scripts must run.
     // Written into the generated package.json `allowScripts` so npm's install-script policy (advisory
     // today, blocking in a future release) never silently skips them, e.g. puppeteer downloading Chrome.
@@ -199,7 +192,7 @@ function copyDir(src: string, dest: string, vars: Record<string, string> = {}) {
     }
 }
 
-export async function generateProject({ projectName, plugins, dbDriver, targetDir, nestVersion: passedNestVersion }: GeneratorOptions) {
+export async function generateProject({ projectName, plugins, dbDriver, targetDir }: GeneratorOptions) {
     // First thing, before any filesystem or shell work: projectName is interpolated into the
     // `nest new` command below, and the target must not clobber something that already exists.
     const invalid = validateProjectName(projectName) ?? validateTargetDir(targetDir);
@@ -210,24 +203,7 @@ export async function generateProject({ projectName, plugins, dbDriver, targetDi
     const manifests   = resolvedIds.map(loadManifest);
     const driver      = DB_DRIVERS[dbDriver] ?? DB_DRIVERS.postgres;
 
-    // Never scaffold off `@latest` blindly — a new Nest major can change the scaffold shape
-    // (v12 switched to ESM `"type": "module"` + pulled in TS 6's implicit `strict: true`).
-    // Instead, match whatever NestJS version the user actually has installed, falling back
-    // to the newest major the templates are verified against. See src/nest-version.ts.
-    const nestVersion = passedNestVersion ?? resolveNestVersion();
-
-    // Defends the invariant index.ts's prompt already enforces (it shouldn't offer a plugin
-    // whose minNestMajor exceeds the resolved version) — catches programmatic/API misuse too.
-    for (const m of manifests) {
-        if (m.minNestMajor && nestVersion.major < m.minNestMajor) {
-            throw new Error(
-                `Plugin "${m.id}" requires NestJS ${m.minNestMajor}+, but v${nestVersion.major} was resolved.`,
-            );
-        }
-    }
-
     // 1. Scaffold base project with the official NestJS CLI.
-    const newFlags = nestVersion.newFlags ?? [];
     // Some majors add scaffold prompts create-nestkit doesn't control via a flag (e.g. v12's
     // ESM/CommonJS choice). Tried suppressing it by closing/piping stdin — doesn't work: the
     // underlying prompt reads straight from /dev/tty, bypassing whatever we hand it as stdio,
@@ -235,7 +211,7 @@ export async function generateProject({ projectName, plugins, dbDriver, targetDi
     // silently picking the highlighted default. So it stays interactive with `stdio: 'inherit'`
     // — harmless either way, since the templates compile under both ESM and CommonJS (verified).
     execSync(
-        `npx --yes @nestjs/cli@${nestVersion.cliRange} new ${projectName} --skip-install --skip-git --package-manager npm ${newFlags.join(' ')}`,
+        `npx --yes @nestjs/cli@${NEST.cliRange} new ${projectName} --skip-install --skip-git --package-manager npm ${NEST.newFlags.join(' ')}`,
         { cwd: parentDir, stdio: 'inherit' },
     );
 
@@ -278,7 +254,7 @@ export async function generateProject({ projectName, plugins, dbDriver, targetDi
     // with one describing what this project actually contains.
     fs.writeFileSync(
         path.join(targetDir, 'README.md'),
-        buildReadme(manifests, dbDriver, projectName, nestVersion.major),
+        buildReadme(manifests, dbDriver, projectName),
     );
 
     // 6b. Post-process seed: strip User/hashPassword imports and seeding when users plugin is absent
@@ -325,7 +301,7 @@ export async function generateProject({ projectName, plugins, dbDriver, targetDi
 
     // 7. Install dependencies
     // Bare names resolve to npm's `latest`; anything listed in nestVersion.packages
-    // gets pinned to the range that's actually compatible with the scaffolded major.
+    // gets pinned to the range that's actually compatible with the target Nest major.
     const coreProdDeps = [
         '@nestjs/config',
         '@nestjs/swagger',
@@ -336,9 +312,9 @@ export async function generateProject({ projectName, plugins, dbDriver, targetDi
         'bcrypt',
         'class-validator',
         'class-transformer',
-    ].map(d => pinDep(d, nestVersion));
+    ].map(d => pinDep(d));
     const coreDevDeps  = ['@types/bcrypt'];
-    const pluginProd   = manifests.flatMap(m => m.dependencies.prod).map(d => pinDep(d, nestVersion));
+    const pluginProd   = manifests.flatMap(m => m.dependencies.prod).map(d => pinDep(d));
     const pluginDev    = manifests.flatMap(m => m.dependencies.dev);
 
     execSync(

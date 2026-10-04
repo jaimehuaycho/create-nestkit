@@ -1,4 +1,5 @@
 import { Manifest } from '../generator';
+import { NEST } from '../nest-version';
 import { firstRunSteps, renderSteps } from '../next-steps';
 
 const DB_LABELS: Record<string, string> = {
@@ -16,7 +17,6 @@ export function buildReadme(
     manifests:   Manifest[],
     dbDriver:    string,
     projectName: string,
-    nestMajor:   number,
 ): string {
     const ids     = new Set(manifests.map(m => m.id));
     const hasDb   = ids.has('database');
@@ -33,7 +33,7 @@ export function buildReadme(
     l.push(``, `Scaffolded with [create-nestkit](https://www.npmjs.com/package/@darkj/create-nestkit).`);
 
     l.push(``, `## Stack`);
-    l.push(`- **NestJS ${nestMajor}** + TypeScript`);
+    l.push(`- **NestJS ${NEST.major}** + TypeScript`);
     if (hasDb)   l.push(`- **TypeORM** + ${DB_LABELS[dbDriver] ?? dbDriver}`);
     if (hasAuth) l.push(`- **JWT auth** with refresh token rotation + role-based guards`);
     if (hasMail) l.push(`- **Mailer** — SMTP or HTTP API (Resend-compatible), Port & Adapter pattern`);

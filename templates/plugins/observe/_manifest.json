@@ -2,7 +2,6 @@
   "id": "observe",
   "label": "Observability (Nest Observe)",
   "requires": [],
-  "minNestMajor": 12,
   "appModule": {
     "imports": [
       "import { ObservabilityModule } from './plugins/observe/observe.module.js';"
