@@ -19,6 +19,11 @@ All notable changes to this project are documented here. The format follows
   on Node 22 and 24.
 
 ### Added
+- **Choose the password hashing algorithm when Auth is selected:** bcrypt (default) or Argon2id. The generated
+  `src/shared/security/password.util.ts` exports the same `hashPassword`, `comparePassword` and `PASSWORD_MAX_BYTES` for
+  both, so the users service, auth service, seed and DTOs do not depend on the choice. Only the chosen library is
+  installed (and approved in `allowScripts`); projects without Auth no longer install `bcrypt` at all. bcrypt keeps its
+  72-byte limit; Argon2id uses the library defaults (64 MiB, 3 iterations, 4 lanes) with a 256-byte input guard.
 - The README has a Requirements section (Node, npm, NestJS) and states which NestJS version the scaffold targets and
   what it reproduces.
 - Generated projects now ship a complete Claude Code setup in `.claude/`:
@@ -63,6 +68,8 @@ All notable changes to this project are documented here. The format follows
   characters or path separators (for example `x; rm -rf ~`) are rejected instead of being passed to the shell.
 
 ### Fixed
+- The Docker healthcheck of projects with the PDF plugin always failed: it used `wget`, which `node:22-bookworm-slim`
+  does not ship (verified in Docker). Both Dockerfiles now healthcheck with Node's own `fetch`.
 - Mailer templates never reached `dist/`: `nest-cli.json` had no `assets` entry. Plugins can now declare `nestAssets`,
   and the mailer copies `src/plugins/mailer/templates/**/*.hbs`, where its SMTP module reads them.
 - An invalid `NODE_ENV` crashed with `Cannot destructure property 'logger'`. It now fails with
