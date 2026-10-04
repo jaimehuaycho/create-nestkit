@@ -38,8 +38,9 @@ There is no detection of a globally installed `nest`, and NestJS 11 is not suppo
 When NestJS ships a new major, create-nestkit moves to it and publishes a new major version. Older NestJS majors are not
 maintained here: use the matching older release of create-nestkit if you need one.
 
-Other dependencies (TypeORM 1, Joi 18, Puppeteer 25 for PDF, and so on) resolve to their latest version when the
-project is generated. Puppeteer needs Node 22.12+ (its package metadata), which the scaffold requirement above already covers.
+Every other dependency is pinned to the major version the templates were verified against (TypeORM 1, Joi 18, Puppeteer 25
+for PDF, and so on): you get their minor and patch releases, never a new major by surprise. When a new major appears, create-nestkit
+adopts it on purpose in a new release. Puppeteer needs Node 22.12+ (its package metadata), which the scaffold requirement above already covers.
 
 ## Plugins
 

@@ -115,9 +115,14 @@ describe('pinDep', () => {
         expect(pinDep('@nestjs/typeorm')).toBe(`@nestjs/typeorm@^${NEST.major}`);
     });
 
-    it('leaves an unlisted package name bare so npm resolves it to latest', () => {
-        expect(pinDep('typeorm')).toBe('typeorm');
-        expect(pinDep('bcrypt')).toBe('bcrypt');
+    it('pins every other dependency to the major the templates were verified against', () => {
+        expect(pinDep('typeorm')).toBe('typeorm@^1');
+        expect(pinDep('joi')).toBe('joi@^18');
+        expect(pinDep('argon2')).toBe('argon2@^0.45');
+    });
+
+    it('refuses an unknown package instead of installing a bare name (a surprise major)', () => {
+        expect(() => pinDep('left-pad')).toThrow(/No version range for "left-pad"/);
     });
 });
 

@@ -16,13 +16,16 @@ import { buildAllClaudeFiles } from './builders/claude-md';
 import { buildSettingsJson } from './builders/settings-json';
 import { withClaudeIgnores } from './builders/gitignore';
 import { NEST } from './nest-version';
+import { DEPENDENCY_RANGES } from './dependencies';
 import { validateProjectName, validateTargetDir } from './validate';
 
-// Appends the range pinned for the target Nest major if the package is one of the tightly-coupled
-// @nestjs/* siblings; otherwise installs whatever npm resolves as latest.
+// Appends the range this package is pinned to: the target Nest major for the coupled @nestjs/* packages, or the verified
+// major from DEPENDENCY_RANGES for everything else. Never installs a bare name, so a new major of any dependency cannot
+// reach new projects by surprise (see src/dependencies.ts).
 export function pinDep(name: string): string {
-    const range = NEST.packages[name];
-    return range ? `${name}@${range}` : name;
+    const range = NEST.packages[name] ?? DEPENDENCY_RANGES[name];
+    if (!range) throw new Error(`No version range for "${name}". Add it to DEPENDENCY_RANGES in src/dependencies.ts.`);
+    return `${name}@${range}`;
 }
 
 const TEMPLATES_DIR = path.join(__dirname, '..', 'templates');
@@ -38,7 +41,19 @@ interface DbDriver {
     appDependsOn?:   string;
 }
 
-const DB_DRIVERS: Record<string, DbDriver> = {
+// Installed in every generated project, on top of what `nest new` provides. (swagger-ui-express is NOT here:
+// @nestjs/swagger 12 bundles swagger-ui-dist and its docs list no other install for Express.)
+export const CORE_PROD_DEPENDENCIES = [
+    '@nestjs/config',
+    '@nestjs/swagger',
+    '@nestjs/terminus',
+    'joi',
+    'dotenv',
+    'class-validator',
+    'class-transformer',
+];
+
+export const DB_DRIVERS: Record<string, DbDriver> = {
     postgres: {
         prod: ['pg'],
         dev:  [],
@@ -304,29 +319,17 @@ export async function generateProject({ projectName, plugins, dbDriver, targetDi
     addInstallScriptPolicy(targetDir, manifests, hasher?.allowScripts ?? []);
     addNestAssets(targetDir, manifests);
 
-    // 7. Install dependencies
-    // Bare names resolve to npm's `latest`; anything listed in nestVersion.packages
-    // gets pinned to the range that's actually compatible with the target Nest major.
-    const coreProdDeps = [
-        '@nestjs/config',
-        '@nestjs/swagger',
-        '@nestjs/terminus',
-        'swagger-ui-express',
-        'joi',
-        'dotenv',
-        'class-validator',
-        'class-transformer',
-    ].map(d => pinDep(d));
-    const coreDevDeps  = [] as string[];
+    // 7. Install dependencies. Every name goes through pinDep: no bare names, so nothing resolves to a surprise major.
+    const coreProdDeps = CORE_PROD_DEPENDENCIES.map(d => pinDep(d));
     const pluginProd   = [...manifests.flatMap(m => m.dependencies.prod), ...(hasher?.dependencies.prod ?? [])].map(d => pinDep(d));
-    const pluginDev    = [...manifests.flatMap(m => m.dependencies.dev), ...(hasher?.dependencies.dev ?? [])];
+    const pluginDev    = [...manifests.flatMap(m => m.dependencies.dev), ...(hasher?.dependencies.dev ?? [])].map(d => pinDep(d));
 
     execSync(
-        `npm install ${[...coreProdDeps, ...driver.prod, ...pluginProd].join(' ')}`,
+        `npm install ${[...coreProdDeps, ...driver.prod.map(d => pinDep(d)), ...pluginProd].join(' ')}`,
         { cwd: targetDir, stdio: 'inherit' },
     );
 
-    const allDev = [...coreDevDeps, ...driver.dev, ...pluginDev];
+    const allDev = [...driver.dev.map(d => pinDep(d)), ...pluginDev];
     if (allDev.length > 0) {
         execSync(
             `npm install --save-dev ${allDev.join(' ')}`,

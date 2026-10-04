@@ -30,9 +30,7 @@
       "nodemailer",
       "handlebars"
     ],
-    "dev": [
-      "@types/nodemailer"
-    ]
+    "dev": []
   },
   "scripts": {}
 }
