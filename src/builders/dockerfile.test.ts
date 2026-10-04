@@ -31,4 +31,14 @@ describe('buildDockerfile', () => {
         expect(result).toContain('EXPOSE 3000');
         expect(result).toContain('HEALTHCHECK');
     });
+
+    it('healthchecks with Node itself, never wget or curl (the Debian slim image has neither)', () => {
+        for (const manifests of [[], [fakeManifest('pdf', { base: 'debian' })]]) {
+            const result = buildDockerfile(manifests);
+            expect(result).toContain('HEALTHCHECK');
+            expect(result).toContain('fetch(');
+            expect(result).not.toMatch(/\bwget\b|\bcurl\b/);
+        }
+    });
 });
+

@@ -1,5 +1,7 @@
 import { Manifest } from '../generator';
 
+// The healthcheck uses Node's own fetch: node:22-bookworm-slim ships neither wget nor curl (verified in Docker), so a
+// wget-based check always failed there and the container was reported unhealthy.
 const ALPINE_BASE  = 'node:22-alpine';
 const DEBIAN_BASE  = 'node:22-bookworm-slim';
 
@@ -25,7 +27,7 @@ COPY --from=builder /app/dist        ./dist
 USER nestjs
 EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=5s --retries=3 \\
-  CMD wget -qO- http://localhost:3000/api/health || exit 1
+  CMD ["node", "-e", "fetch('http://localhost:3000/api/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"]
 CMD ["node", "dist/main"]
 `.trimStart();
 }
@@ -70,7 +72,7 @@ USER nestjs
 
 EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=5s --retries=3 \\
-  CMD wget -qO- http://localhost:3000/api/health || exit 1
+  CMD ["node", "-e", "fetch('http://localhost:3000/api/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"]
 CMD ["node", "dist/main"]
 `.trimStart();
 }
