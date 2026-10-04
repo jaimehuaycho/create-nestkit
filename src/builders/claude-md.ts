@@ -96,6 +96,10 @@ export function buildClaudeMd(manifests: Manifest[], dbDriver: string, projectNa
     if (c.hasDb)   l.push(`| \`src/database/**\`, entities | \`.claude/rules/database.md\` |`);
     if (c.hasAuth) l.push(`| \`src/app/auth/**\`, \`src/modules/users/**\` | \`.claude/rules/auth.md\` |`);
     if (hasPlugins) l.push(`| \`src/plugins/**\` | \`.claude/rules/plugins.md\` |`);
+    // Path-scoped rules only load once a matching file is read or edited, so planning work before touching
+    // any file would otherwise happen without them. Say so explicitly.
+    l.push(``, `Rules load when you first read or edit a matching file. When you plan or review work in an area before`);
+    l.push(`touching any file there, read its rule file first.`);
 
     l.push(``, `## Active plugins`);
     if (!c.hasDb && !c.hasAuth && !hasPlugins) {

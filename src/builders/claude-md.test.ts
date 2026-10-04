@@ -70,6 +70,10 @@ describe('generated CLAUDE.md content', () => {
         expect(generate(['database']).get('.claude/CLAUDE.md')).toMatch(/seed .*empty seed script/);
     });
 
+    it('tells Claude to read a rule before planning in an area, since rules only load on file access', () => {
+        expect(generate([]).get('.claude/CLAUDE.md')).toMatch(/read its rule file first/);
+    });
+
     it('keeps the decision journal and plans folder', () => {
         const files = generate([]);
         expect(files.has('.claude/context/decisions.md')).toBe(true);

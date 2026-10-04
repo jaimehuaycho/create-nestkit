@@ -21,7 +21,8 @@ All notable changes to this project are documented here. The format follows
   Existing generated projects are not affected.
 - The generated `CLAUDE.md` shrank from ~150 to ~70 lines. Conventions moved to path-scoped rules
   (`.claude/rules/*.md` with `paths:`) that load only when you work in that area, instead of ~500 lines in every
-  session. The Module/Service/Controller/Exception patterns now live in `rules/api-patterns.md`.
+  session. The Module/Service/Controller/Exception patterns now live in `rules/api-patterns.md`. The generated
+  `CLAUDE.md` tells Claude to read an area's rule first when planning work there before touching any file.
 
 ### Changed
 - Publishing is now guarded: `npm run build` cleans `dist/` first, and `prepublishOnly` runs the build, the tests
