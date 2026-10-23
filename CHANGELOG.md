@@ -114,6 +114,9 @@ All notable changes to this project are documented here. The format follows
 - **`docker compose up` failed for any project with the Mailer plugin.** Its `.env.example` had `SMTP_FROM="My App" <noreply@example.com>`: text after a
   closing quote, which the strict parser of compose's `env_file` rejects (`unexpected character "<"`) before anything starts. The value is now one quoted
   string, and a test checks every line of the `.env.example` of every plugin and database combination against those rules.
+- **`npm test` could not run in CommonJS projects.** ts-jest stopped with `TS5011: The common source directory ... 'rootDir' must be set` because our
+  `tsconfig.json` lacked the `"rootDir": "."` that Nest sets (TypeScript 6 wants it explicit); `tsconfig.build.json` still narrows it to `./src`, so the
+  build output is unchanged.
 
 ## 1.2.1 - 2026-09-02
 
