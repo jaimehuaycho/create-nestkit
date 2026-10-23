@@ -141,6 +141,12 @@ export const DB_DRIVERS: Record<string, DbDriver> = {
     },
 };
 
+// The driver belongs to the Database plugin. Without it nothing talks to a database, and the driver is dead weight
+// (a project with no database used to install `pg`, because the default engine is postgres whatever was selected).
+export function driverDependencies(resolvedIds: string[], driver: Pick<DbDriver, 'prod' | 'dev'>): { prod: string[]; dev: string[] } {
+    return resolvedIds.includes('database') ? { prod: driver.prod, dev: driver.dev } : { prod: [], dev: [] };
+}
+
 // ---------------------------------------------------------------------------
 
 export interface GeneratorOptions {
@@ -327,16 +333,17 @@ export async function generateProject({ projectName, plugins, dbDriver, targetDi
     addNestAssets(targetDir, manifests);
 
     // 7. Install dependencies. Every name goes through pinDep: no bare names, so nothing resolves to a surprise major.
+    const driverDeps   = driverDependencies(resolvedIds, driver);
     const coreProdDeps = CORE_PROD_DEPENDENCIES.map(d => pinDep(d));
     const pluginProd   = [...manifests.flatMap(m => m.dependencies.prod), ...(hasher?.dependencies.prod ?? [])].map(d => pinDep(d));
     const pluginDev    = [...manifests.flatMap(m => m.dependencies.dev), ...(hasher?.dependencies.dev ?? [])].map(d => pinDep(d));
 
     execSync(
-        `npm install ${[...coreProdDeps, ...driver.prod.map(d => pinDep(d)), ...pluginProd].join(' ')}`,
+        `npm install ${[...coreProdDeps, ...driverDeps.prod.map(d => pinDep(d)), ...pluginProd].join(' ')}`,
         { cwd: targetDir, stdio: 'inherit' },
     );
 
-    const allDev = [...driver.dev.map(d => pinDep(d)), ...pluginDev];
+    const allDev = [...driverDeps.dev.map(d => pinDep(d)), ...pluginDev];
     if (allDev.length > 0) {
         execSync(
             `npm install --save-dev ${allDev.join(' ')}`,

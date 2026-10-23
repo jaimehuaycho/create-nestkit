@@ -2,7 +2,7 @@ import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
 import { describe, it, expect } from 'vitest';
-import { loadManifest, resolvePlugins, pinDep, generateProject, writeClaudeTooling, Manifest } from './generator';
+import { loadManifest, resolvePlugins, pinDep, generateProject, writeClaudeTooling, driverDependencies, DB_DRIVERS, Manifest } from './generator';
 import { NEST } from './nest-version';
 
 const PLUGINS_DIR = path.join(__dirname, '..', 'templates', 'plugins');
@@ -177,6 +177,20 @@ describe('writeClaudeTooling — full .claude/ output of a generated project', (
         const settings = fs.readFileSync(p.at('.claude/settings.json'), 'utf-8');
         for (const script of new Set(settings.match(/hooks\/[\w.-]+\.cjs/g) ?? [])) {
             expect(p.exists(`.claude/${script}`), script).toBe(true);
+        }
+    });
+});
+
+describe('driverDependencies', () => {
+    it('installs the driver only when the Database plugin is selected', () => {
+        expect(driverDependencies(['database'], DB_DRIVERS.postgres)).toEqual({ prod: ['pg'], dev: [] });
+        expect(driverDependencies(['database', 'users', 'auth'], DB_DRIVERS.mysql)).toEqual({ prod: ['mysql2'], dev: [] });
+    });
+
+    it('installs no driver for a project without a database, whatever engine is the default', () => {
+        for (const engine of Object.values(DB_DRIVERS)) {
+            expect(driverDependencies([], engine)).toEqual({ prod: [], dev: [] });
+            expect(driverDependencies(['mailer', 'socket'], engine)).toEqual({ prod: [], dev: [] });
         }
     });
 });

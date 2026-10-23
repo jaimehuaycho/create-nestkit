@@ -107,6 +107,8 @@ All notable changes to this project are documented here. The format follows
 - **The generated `docker-compose.yml` could not run the app.** The container read the host-side `.env`, so it looked for the database on `localhost`
   (itself) and listened on your own `PORT` while the mapping, `EXPOSE` and healthcheck assume 3000. The `app` service now sets `PORT: 3000` and, with a
   database, `DB_HOST: db` and the engine's container port in `environment`.
+- **A project without the Database plugin still installed a database driver** (`pg`: the default engine was installed whatever was selected). The driver is
+  now installed only with the Database plugin.
 
 ## 1.2.1 - 2026-09-02
 
