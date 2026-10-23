@@ -97,6 +97,9 @@ All notable changes to this project are documented here. The format follows
 - **Generated projects had no `.gitignore` for `.env`, `node_modules` or `dist`.** `nest new --skip-git` writes none (the CLI creates it only
   when it also runs `git init`), so a `git add .` committed the `.env` with its secrets. The project now gets Nest's own default list plus
   `.env.*` (keeping `.env.example`) and the personal Claude Code files; an existing file is kept and only completed. Checked against real `git check-ignore`.
+- **The generated `main.ts` never enabled shutdown hooks.** On `SIGTERM` (`docker stop`, Kubernetes) Nest then skipped `onModuleDestroy` and
+  `onApplicationShutdown`, so the database connection, and any module that drains work when stopping, were cut instead of closed. It now calls
+  `app.enableShutdownHooks()`.
 
 ## 1.2.1 - 2026-09-02
 

@@ -46,6 +46,9 @@ export function buildMainTs(manifests: Manifest[], dbDriver: string, projectName
         : `    const app = await NestFactory.create(AppModule, { logger });`);
     lines.push(`    const cfg = app.get(AppConfig);`);
     lines.push(``);
+    lines.push(`    // Lets SIGTERM (docker stop, Kubernetes) finish the work in flight and close connections (database, mail) instead of cutting them.`);
+    lines.push(`    app.enableShutdownHooks();`);
+    lines.push(``);
     lines.push(`    app.setGlobalPrefix(cfg.apiPrefix);`);
     lines.push(``);
     lines.push(`    if (swagger) {`);

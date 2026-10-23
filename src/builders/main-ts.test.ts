@@ -13,6 +13,14 @@ function fakeManifest(id: string): Manifest {
 }
 
 describe('buildMainTs', () => {
+    it('always enables shutdown hooks, before the server starts listening', () => {
+        for (const manifests of [[], [fakeManifest('database')], [fakeManifest('auth'), fakeManifest('database'), fakeManifest('mailer')]]) {
+            const result = buildMainTs(manifests, 'postgres', 'my-api');
+            expect(result).toContain('app.enableShutdownHooks();');
+            expect(result.indexOf('app.enableShutdownHooks();')).toBeLessThan(result.indexOf('app.listen('));
+        }
+    });
+
     it('omits auth/db-only lines when neither plugin is active', () => {
         const result = buildMainTs([], 'postgres', 'my-api');
         expect(result).not.toContain('JwtConfig');
