@@ -104,6 +104,9 @@ All notable changes to this project are documented here. The format follows
   never asks the registry again, so a machine that once ran 12.0.0 kept generating with the 12.0.0 template after 12.0.10 was published. The generator now
   resolves the latest 12.x itself and runs that exact version (falling back to the range offline). Among other things the current template no longer needs
   `vite-tsconfig-paths`, whose deprecated `tsconfck` dependency made `npm ci` fail in the generated Dockerfile.
+- **The generated `docker-compose.yml` could not run the app.** The container read the host-side `.env`, so it looked for the database on `localhost`
+  (itself) and listened on your own `PORT` while the mapping, `EXPOSE` and healthcheck assume 3000. The `app` service now sets `PORT: 3000` and, with a
+  database, `DB_HOST: db` and the engine's container port in `environment`.
 
 ## 1.2.1 - 2026-09-02
 

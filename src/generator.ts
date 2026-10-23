@@ -40,6 +40,8 @@ interface DbDriver {
     composeService?: string;
     composeVolume?:  string;
     appDependsOn?:   string;
+    // Port the engine listens on INSIDE its container (the host side of `ports:` can differ). The app container reaches it as db:<port>.
+    containerPort?:  number;
 }
 
 // Installed in every generated project, on top of what `nest new` provides. (swagger-ui-express is NOT here:
@@ -77,6 +79,7 @@ export const DB_DRIVERS: Record<string, DbDriver> = {
             '      timeout: 5s',
             '      retries: 5',
         ].join('\n'),
+        containerPort: 5432,
         composeVolume: '  db_data:',
     },
     mysql: {
@@ -102,6 +105,7 @@ export const DB_DRIVERS: Record<string, DbDriver> = {
             '      timeout: 5s',
             '      retries: 5',
         ].join('\n'),
+        containerPort: 3306,
         composeVolume: '  db_data:',
     },
     mariadb: {
@@ -127,6 +131,7 @@ export const DB_DRIVERS: Record<string, DbDriver> = {
             '      timeout: 5s',
             '      retries: 5',
         ].join('\n'),
+        containerPort: 3306,
         composeVolume: '  db_data:',
     },
     mssql: {
