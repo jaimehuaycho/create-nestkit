@@ -94,6 +94,9 @@ All notable changes to this project are documented here. The format follows
 - The CLI refuses to generate into a path that already exists, instead of handing it to `nest new`.
 - The Database slash commands (`/nestjs/module`, `/db/map`) were not tracked in git because of an unanchored
   ignore rule, so a fresh clone would have built projects without them.
+- **Generated projects had no `.gitignore` for `.env`, `node_modules` or `dist`.** `nest new --skip-git` writes none (the CLI creates it only
+  when it also runs `git init`), so a `git add .` committed the `.env` with its secrets. The project now gets Nest's own default list plus
+  `.env.*` (keeping `.env.example`) and the personal Claude Code files; an existing file is kept and only completed. Checked against real `git check-ignore`.
 
 ## 1.2.1 - 2026-09-02
 

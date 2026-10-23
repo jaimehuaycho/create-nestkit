@@ -14,7 +14,7 @@ import { buildHealthController } from './builders/health-controller';
 import { buildReadme }        from './builders/readme';
 import { buildAllClaudeFiles } from './builders/claude-md';
 import { buildSettingsJson } from './builders/settings-json';
-import { withClaudeIgnores } from './builders/gitignore';
+import { buildGitignore } from './builders/gitignore';
 import { NEST } from './nest-version';
 import { DEPENDENCY_RANGES } from './dependencies';
 import { validateProjectName, validateTargetDir } from './validate';
@@ -385,8 +385,8 @@ export function writeClaudeTooling(targetDir: string, manifests: Manifest[], dbD
         copyDir(path.join(coreClaudeDir, 'skills-db'), path.join(claudeDir, 'skills'));
     }
 
-    // Keep personal Claude Code state out of git (nest new wrote the base .gitignore).
+    // `nest new --skip-git` writes no .gitignore, so this builds the whole file (and keeps secrets and personal Claude Code state out of git).
     const gitignorePath = path.join(targetDir, '.gitignore');
     const gitignore     = fs.existsSync(gitignorePath) ? fs.readFileSync(gitignorePath, 'utf-8') : '';
-    fs.writeFileSync(gitignorePath, withClaudeIgnores(gitignore));
+    fs.writeFileSync(gitignorePath, buildGitignore(gitignore));
 }
