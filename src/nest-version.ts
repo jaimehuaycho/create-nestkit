@@ -1,7 +1,8 @@
 // The NestJS major this scaffold targets. Only the LATEST major is supported: when Nest ships a new one, this
 // package moves to it (a new create-nestkit major) and older majors are not maintained here. There is
-// deliberately no detection of the user's globally installed `nest`: `nest new` always runs through
-// `npx @nestjs/cli@<cliRange>`, so the generated project does not depend on what is installed on the machine.
+// deliberately no detection of the user's globally installed `nest`: `nest new` always runs through `npx @nestjs/cli@<version>`, where the
+// version is the latest one inside `cliRange` (resolved in nest-cli-version.ts, because npx would otherwise reuse a cached older 12.x), so the
+// generated project does not depend on what is installed or cached on the machine.
 //
 // Nest ships breaking scaffold changes per major (v12 switched `nest new` to a TypeScript 6 / ESM-or-CJS scaffold,
 // oxlint, vitest or jest), so the companion @nestjs/* packages are pinned to the range verified against this major.

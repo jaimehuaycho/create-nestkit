@@ -15,6 +15,7 @@ import { buildReadme }        from './builders/readme';
 import { buildAllClaudeFiles } from './builders/claude-md';
 import { buildSettingsJson } from './builders/settings-json';
 import { buildGitignore } from './builders/gitignore';
+import { resolveNestCliVersion } from './nest-cli-version';
 import { NEST } from './nest-version';
 import { DEPENDENCY_RANGES } from './dependencies';
 import { validateProjectName, validateTargetDir } from './validate';
@@ -226,8 +227,9 @@ export async function generateProject({ projectName, plugins, dbDriver, targetDi
     // and closing stdin just makes it abort with "User force closed the prompt" instead of
     // silently picking the highlighted default. So it stays interactive with `stdio: 'inherit'`
     // — harmless either way, since the templates compile under both ESM and CommonJS (verified).
+    // The exact latest version in the range, not the range: npx caches a range under its text and would keep reusing an old 12.x (nest-cli-version.ts).
     execSync(
-        `npx --yes @nestjs/cli@${NEST.cliRange} new ${projectName} --skip-install --skip-git --package-manager npm ${NEST.newFlags.join(' ')}`,
+        `npx --yes @nestjs/cli@${resolveNestCliVersion()} new ${projectName} --skip-install --skip-git --package-manager npm ${NEST.newFlags.join(' ')}`,
         { cwd: parentDir, stdio: 'inherit' },
     );
 

@@ -100,6 +100,10 @@ All notable changes to this project are documented here. The format follows
 - **The generated `main.ts` never enabled shutdown hooks.** On `SIGTERM` (`docker stop`, Kubernetes) Nest then skipped `onModuleDestroy` and
   `onApplicationShutdown`, so the database connection, and any module that drains work when stopping, were cut instead of closed. It now calls
   `app.enableShutdownHooks()`.
+- **Projects were scaffolded with whatever Nest CLI 12.x was cached on the machine.** `npx @nestjs/cli@^12` is cached under the text of the range and
+  never asks the registry again, so a machine that once ran 12.0.0 kept generating with the 12.0.0 template after 12.0.10 was published. The generator now
+  resolves the latest 12.x itself and runs that exact version (falling back to the range offline). Among other things the current template no longer needs
+  `vite-tsconfig-paths`, whose deprecated `tsconfck` dependency made `npm ci` fail in the generated Dockerfile.
 
 ## 1.2.1 - 2026-09-02
 
