@@ -15,6 +15,7 @@ import { buildReadme }        from './builders/readme';
 import { buildAllClaudeFiles } from './builders/claude-md';
 import { buildSettingsJson } from './builders/settings-json';
 import { buildGitignore } from './builders/gitignore';
+import { buildTsconfig } from './builders/tsconfig';
 import { resolveNestCliVersion } from './nest-cli-version';
 import { NEST } from './nest-version';
 import { DEPENDENCY_RANGES } from './dependencies';
@@ -244,10 +245,12 @@ export async function generateProject({ projectName, plugins, dbDriver, targetDi
         { cwd: parentDir, stdio: 'inherit' },
     );
 
-    // 2. Override nest-generated tsconfig with ours (removes deprecated baseUrl, adds paths)
-    fs.copyFileSync(
-        path.join(TEMPLATES_DIR, 'base', 'tsconfig.json'),
-        path.join(targetDir, 'tsconfig.json'),
+    // 2. Override nest-generated tsconfig with ours (removes deprecated baseUrl, adds paths), keeping the test runner `types` Nest chose
+    //    (vitest/globals for ESM, jest for CommonJS), which would otherwise be lost.
+    const tsconfigPath = path.join(targetDir, 'tsconfig.json');
+    fs.writeFileSync(
+        tsconfigPath,
+        buildTsconfig(fs.readFileSync(path.join(TEMPLATES_DIR, 'base', 'tsconfig.json'), 'utf-8'), fs.readFileSync(tsconfigPath, 'utf-8')),
     );
 
     // 3. Remove default files that we replace with our own

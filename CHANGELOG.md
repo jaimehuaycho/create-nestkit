@@ -109,6 +109,8 @@ All notable changes to this project are documented here. The format follows
   database, `DB_HOST: db` and the engine's container port in `environment`.
 - **A project without the Database plugin still installed a database driver** (`pg`: the default engine was installed whatever was selected). The driver is
   now installed only with the Database plugin.
+- **`tsc --noEmit` failed on any spec that used the test runner's globals.** The `tsconfig.json` we write replaced Nest's, dropping its `types`
+  (`vitest/globals` for ESM, `jest` for CommonJS). They are now carried over.
 
 ## 1.2.1 - 2026-09-02
 
