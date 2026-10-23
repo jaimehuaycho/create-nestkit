@@ -3,6 +3,7 @@ import * as os from 'os';
 import * as path from 'path';
 import { describe, it, expect, afterEach } from 'vitest';
 import { buildEnvExample } from './env-example';
+import { resolvePlugins } from '../generator';
 
 describe('buildEnvExample', () => {
     let tmpDir: string;
@@ -89,3 +90,29 @@ describe('buildEnvExample', () => {
     });
 });
 
+// docker compose reads the project's .env through env_file with a strict parser: `SMTP_FROM="My App" <a@b.c>` (text after a closing quote)
+// makes `docker compose up` fail before anything starts. Every real value must be a plain token or ONE fully quoted string, and an
+// unquoted value may hold no space, quote, `<`, `>`, `#` or `$` (compose would interpolate it). Commented examples are checked too:
+// the user will uncomment them.
+describe('the generated .env.example loads in strict dotenv parsers', () => {
+    const TEMPLATES = path.join(__dirname, '..', '..', 'templates');
+    const VALID = /^[A-Z][A-Z0-9_]*=(?:"[^"]*"|'[^']*'|[^\s"'#<>$]*)\s*(?:#.*)?$/;
+
+    const combos: Record<string, string[]> = { 'no plugins': [], 'every plugin': ['database', 'auth', 'mailer', 'socket', 'pdf', 'observe'] };
+    for (const id of ['database', 'auth', 'mailer', 'socket', 'pdf', 'observe']) combos[id] = [id];
+
+    for (const [label, plugins] of Object.entries(combos)) {
+        for (const driver of ['postgres', 'mysql', 'mariadb', 'mssql']) {
+            it(`${label} (${driver})`, () => {
+                const text = buildEnvExample(resolvePlugins(plugins), driver, TEMPLATES);
+                const invalid: string[] = [];
+                for (const line of text.split('\n')) {
+                    const trimmed = line.trim();
+                    const candidate = /^#\s*([A-Z][A-Z0-9_]*=.*)$/.exec(trimmed)?.[1] ?? (trimmed.startsWith('#') ? '' : trimmed);
+                    if (candidate && !VALID.test(candidate)) invalid.push(trimmed);
+                }
+                expect(invalid, `lines a strict parser rejects:\n${invalid.join('\n')}`).toEqual([]);
+            });
+        }
+    }
+});
