@@ -50,6 +50,18 @@ All notable changes to this project are documented here. The format follows
   allowed, and production refuses to start with `CORS_ORIGINS=*`; list endpoints cap the page size at 100.
   New dependency in every project: `@nestjs/throttler`.
 
+### Changed (BREAKING for the Mailer plugin)
+- **The Mailer plugin now sits on Nest's own mail module (`@nestjs/mail`, pinned exactly, 0.0.1)** instead of `@nestjs-modules/mailer` + a
+  hand-written port and adapters. Transports: `log` (default) and `file` (development, refused in production), `smtp` (pooled connections,
+  STARTTLS, verified certificates), `resend`, `postmark`, `sendgrid` and `ses`, chosen with `MAIL_TRANSPORT`; each declares its own variables and
+  the app refuses to start without them. Replaces `MAILER_TRANSPORT`, `SMTP_FROM`, `MAILER_FROM`, `MAILER_API_KEY` and `MAILER_API_URL` by `MAIL_FROM`
+  and the per-transport variables. Mail classes (`<feature>/mails/*.mail.ts`) and Handlebars templates (`templates/<feature>/`, with a shared layout and
+  partials); `MailDispatcher` sends in the background and logs failures without writing the recipient. `nest build` now copies the templates (the old
+  plugin declared `.hbs` assets but shipped none). ESM projects get the plugin's own specs.
+- **With Auth + Mailer the verification and password-reset codes are sent as real e-mail** (`MailAuthMailer`); without the Mailer the simulated
+  `AuthMailer` stays and refuses to start in production. Removed dependencies: `@nestjs-modules/mailer`, `nodemailer`, `handlebars`.
+- A project that selects the Mailer git-ignores `/var` (the `file` transport writes there).
+
 ### Added
 - **Choose the password hashing algorithm when Auth is selected:** bcrypt (default) or Argon2id. The generated
   `src/shared/security/password.util.ts` exports the same `hashPassword`, `comparePassword` and `PASSWORD_MAX_BYTES` for

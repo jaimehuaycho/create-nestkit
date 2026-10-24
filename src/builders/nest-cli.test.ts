@@ -37,9 +37,9 @@ describe('applyNestAssets', () => {
         expect(withGraphql.compilerOptions.assets).toEqual(['**/*.graphql', { include: 'a/**/*.hbs', watchAssets: true }]);
     });
 
-    it('the mailer plugin declares its templates folder, matching where the SMTP module reads them', () => {
-        expect(loadManifest('mailer').nestAssets).toEqual(['plugins/mailer/templates/**/*.hbs']);
-        const smtp = fs.readFileSync(path.join(__dirname, '..', '..', 'templates', 'plugins', 'mailer', 'src', 'plugins', 'mailer', 'smtp', 'smtp.module.ts'), 'utf-8');
-        expect(smtp).toContain("join(process.cwd(), 'dist', 'plugins', 'mailer', 'templates')");
+    it('the mailer plugin declares its templates folder, matching where its module reads them', () => {
+        expect(loadManifest('mailer').nestAssets).toEqual(['plugins/mailer/templates/**/*']);
+        const module = fs.readFileSync(path.join(__dirname, '..', '..', 'templates', 'plugins', 'mailer', 'src', 'plugins', 'mailer', 'mailer.module.ts'), 'utf-8');
+        expect(module).toContain("join(process.cwd(), 'dist', 'plugins', 'mailer', 'templates')");
     });
 });

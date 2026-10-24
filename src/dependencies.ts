@@ -36,10 +36,8 @@ export const DEPENDENCY_RANGES: Record<string, string> = {
     '@types/bcrypt':       '^6',
     argon2:                '^0.45',
 
-    // mailer
-    '@nestjs-modules/mailer': '^3',
-    nodemailer:            '^10',
-    handlebars:            '^4',
+    // mailer: 0.0.x, where every patch can break, so the caret is an exact pin (^0.0.1 means 0.0.1 only)
+    '@nestjs/mail':        '^0.0.1',
 
     // pdf, socket, observability
     puppeteer:             '^25',

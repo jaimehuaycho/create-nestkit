@@ -35,7 +35,7 @@ describe('dependency version ranges', () => {
 
     it('@nestjs/* packages are pinned by the Nest profile, never by this table', () => {
         // Not coupled to the Nest major: observe (0.x) and throttler (6.x) have their own version lines.
-        const OWN_VERSION_LINE = ['@nestjs/observe', '@nestjs/throttler'];
+        const OWN_VERSION_LINE = ['@nestjs/observe', '@nestjs/throttler', '@nestjs/mail'];
         for (const name of Object.keys(DEPENDENCY_RANGES)) {
             if (name.startsWith('@nestjs/') && !OWN_VERSION_LINE.some(own => name.startsWith(own))) {
                 throw new Error(`${name} belongs in NEST.packages`);
@@ -46,8 +46,9 @@ describe('dependency version ranges', () => {
 
     it('pins a major (caret), and a minor for 0.x packages where the minor is the breaking level', () => {
         for (const [name, range] of Object.entries(DEPENDENCY_RANGES)) {
-            expect(range, name).toMatch(/^\^\d+(\.\d+)?$/);
-            if (range.startsWith('^0.')) expect(range, `${name} is 0.x: pin the minor`).toMatch(/^\^0\.\d+$/);
+            expect(range, name).toMatch(/^\^\d+(\.\d+){0,2}$/);
+            if (range.startsWith('^0.0.')) expect(range, `${name} is 0.0.x: the caret is an exact pin`).toMatch(/^\^0\.0\.\d+$/);
+            else if (range.startsWith('^0.')) expect(range, `${name} is 0.x: pin the minor`).toMatch(/^\^0\.\d+$/);
         }
     });
 

@@ -1,14 +1,30 @@
-# Mailer (set MAILER_TRANSPORT to 'smtp' or 'api')
-MAILER_TRANSPORT=smtp
+# Mailer. MAIL_TRANSPORT chooses how mail is delivered and each transport needs its OWN variables (below).
+# The list of transports, and where to add one, is src/plugins/mailer/transports/index.ts.
+# MAIL_FROM is the sender every recipient sees: required by every transport except log and file. Quote it as ONE string:
+#   MAIL_FROM="My App <noreply@yourdomain.com>"
+MAIL_TRANSPORT=log
 
-# SMTP (used when MAILER_TRANSPORT=smtp)
-SMTP_HOST=smtp.example.com
-SMTP_PORT=587
-SMTP_USER=your_email@example.com
-SMTP_PASS=your_password
-SMTP_FROM="My App <noreply@example.com>"
+# --- MAIL_TRANSPORT=log   Development: prints the mail, sends nothing. No variables. Refused in production.
+# --- MAIL_TRANSPORT=file  Development: writes .eml files to var/mail. No variables. Refused in production.
 
-# API e.g. Resend (used when MAILER_TRANSPORT=api)
-# MAILER_API_URL=https://api.resend.com/emails
-# MAILER_API_KEY=your_api_key
-# MAILER_FROM=noreply@yourdomain.com
+# --- MAIL_TRANSPORT=smtp  Port 587 upgrades with STARTTLS, 465 is TLS from the start; certificates are verified.
+# Required: SMTP_HOST. User and password are optional (a local catcher such as Mailpit needs none).
+# SMTP_HOST=smtp.example.com
+# SMTP_PORT=587
+# SMTP_USER=you@example.com
+# SMTP_PASS=your_password
+
+# --- MAIL_TRANSPORT=resend
+# RESEND_API_KEY=re_xxx
+
+# --- MAIL_TRANSPORT=postmark
+# POSTMARK_SERVER_TOKEN=xxx
+
+# --- MAIL_TRANSPORT=sendgrid
+# SENDGRID_API_KEY=SG.xxx
+
+# --- MAIL_TRANSPORT=ses   Required: AWS_REGION, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY.
+# AWS_REGION=eu-west-1
+# AWS_ACCESS_KEY_ID=AKIA...
+# AWS_SECRET_ACCESS_KEY=xxx
+# AWS_SESSION_TOKEN=xxx

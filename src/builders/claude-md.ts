@@ -111,7 +111,7 @@ export function buildClaudeMd(manifests: Manifest[], dbDriver: string, projectNa
     } else {
         if (c.hasDb)      l.push(`- **Database** (${c.dbDriver}): TypeORM, migrations, seeds`);
         if (c.hasAuth)    l.push(`- **Auth**: JWT, refresh rotation, roles`);
-        if (c.hasMail)    l.push(`- **Mailer**: SMTP or API adapter`);
+        if (c.hasMail)    l.push(`- **Mailer**: Nest's mail module (\`@nestjs/mail\`); transport chosen with \`MAIL_TRANSPORT\``);
         if (c.hasSock)    l.push(`- **WebSockets**: Socket.io`);
         if (c.hasPdf)     l.push(`- **PDF**: Puppeteer`);
         if (c.hasObserve) l.push(`- **Observability**: Nest Observe (needs credentials from observe.nestjs.com)`);
@@ -529,8 +529,8 @@ export function buildAuthClaudeMd(hasher: PasswordHasher): string {
     l.push(``, `## E-mail codes and account flows (\`AccountService\`, \`EmailCodesService\`)`);
     l.push(`Verification and password reset use a 6-digit **code** (not a link): stored as an HMAC, single use, expiring, at most 5 attempts, a newer code replaces the older.`);
     l.push(`\`POST /auth/password/forgot\` always answers 202 and takes the same time whether the account exists or not (no enumeration).`);
-    l.push(`Changing the e-mail unverifies it. **\`AuthMailer\` is a SIMULATED mailer:** it only logs \`SIMULATED EMAIL {...}\`. Replace its implementation with the`);
-    l.push(`Mailer plugin (or your own) before production: the flows do not change.`);
+    l.push(`Changing the e-mail unverifies it. Without the Mailer plugin **\`AuthMailer\` is a SIMULATED mailer:** it only logs \`SIMULATED EMAIL {...}\` and refuses to start in production. Replace the provider in \`auth-mailer.provider.ts\` with the`);
+    l.push(`Mailer plugin (or your own) before production: the flows do not change. When the Mailer plugin IS selected, \`MailAuthMailer\` is bound automatically.`);
 
     l.push(``, `## Two-factor (TOTP) — \`/auth/2fa/*\``);
     l.push(`Setup returns a secret + \`otpauth://\` URI; \`enable\` confirms with a code and returns one-time recovery codes. The secret is encrypted at rest`);
@@ -602,23 +602,39 @@ export function buildPluginsClaudeMd(c: ReturnType<typeof ctx>): string {
 
     if (c.hasMail) {
         l.push(``, `## Mailer Plugin`);
-        l.push(`\`\`\`typescript`);
-        l.push(`import { MailerPort, MailOptions } from '../../../plugins/mailer/mailer.port.js';`);
-        l.push(``);
-        l.push(`constructor(private readonly mailer: MailerPort) {}`);
-        l.push(``);
-        l.push(`// Fire-and-forget (errors are logged, not thrown)`);
-        l.push(`this.mailer.send({`);
-        l.push(`    to:      'user@example.com',`);
-        l.push(`    subject: 'Welcome',`);
-        l.push(`    html:    '<p>Hello!</p>',`);
-        l.push(`    // text, template, context, attachments also available`);
-        l.push(`});`);
+        l.push(`Not port & adapter: it is Nest's own mail module (\`@nestjs/mail\`) registered once and used directly, like \`TypeOrmModule\` or \`ConfigModule\`.`);
         l.push(`\`\`\``);
-        l.push(`Transport selected at startup via \`MAILER_TRANSPORT=smtp|api\` env var.`);
-        l.push(`- SMTP: uses \`@nestjs-modules/mailer\` with Handlebars for templates. Put \`.hbs\` files in`);
-        l.push(`  \`src/plugins/mailer/templates/\`: \`nest-cli.json\` copies them to \`dist/\` (assets), where the module reads them.`);
-        l.push(`- API: compatible with Resend by default — override \`buildPayload()\` for other providers.`);
+        l.push(`plugins/mailer/`);
+        l.push(`├── index.ts                   # public entry: MailerModule, MailDispatcher, exceptions`);
+        l.push(`├── mailer.module.ts           # @Global(): MailModule.forRootAsync + MailDispatcher + MailEventsLogger`);
+        l.push(`├── config/                    # mailer.config.ts: reads and validates MAIL_* at startup`);
+        l.push(`├── services/                  # mail-dispatcher.service.ts (background send), mail-events.logger.ts (one log line per delivery)`);
+        l.push(`├── transports/                # one file per transport + index.ts registry (each declares ITS OWN env variables)`);
+        l.push(`├── interfaces/  exceptions/  utils/   # TransportDefinition, MailerConfigurationException, redact-addresses.util.ts (no addresses in logs)`);
+        l.push(`├── mails/                     # example mail class only; yours live next to the feature that sends them`);
+        l.push(`└── templates/                 # layout.html, partials/, then one folder per feature: templates/<feature>/<mail>.html (+ .txt)`);
+        l.push(`\`\`\``);
+        l.push(`**Sending** (inject one of the two):`);
+        l.push(`\`\`\`typescript`);
+        l.push(`constructor(private readonly mails: MailDispatcher, private readonly mailer: Mailer) {}`);
+        l.push(``);
+        l.push(`this.mails.dispatch(WelcomeMail, { to: user.email, data: { name: user.name } });   // background: the usual choice inside a request`);
+        l.push(`await this.mailer.send({ to, subject: 'Hi', template: 'welcome', context: { name } }); // waits; throws MailError if it fails for good`);
+        l.push(`\`\`\``);
+        l.push(`- \`Mailer.send()\` waits for the delivery (3 attempts for transient failures). Never leave its promise without a catch: use \`dispatch()\` instead.`);
+        l.push(`- If the mail must not be lost when the process dies before sending, send it after the database commit with \`@nestjs/outbox\` (not included); pass an`);
+        l.push(`  \`idempotencyKey\` so a redelivery cannot send it twice.`);
+        l.push(`- Group a feature's mails behind one service of its own (\`<Feature>Mails\`): the single place that knows its mail classes and the place to change the delivery strategy.`);
+        l.push(`- Mail classes (\`<feature>/mails/*.mail.ts\`) turn data into a subject and a template name; templates are a Handlebars subset with no helpers, so prepare every value in the mail class. Template names may contain \`/\`.`);
+        l.push(``);
+        l.push(`**Transports.** \`MAIL_TRANSPORT\` selects one: \`log\` (default) and \`file\` (development, refused in production), \`smtp\` (pooled connections), \`resend\`, \`postmark\`,`);
+        l.push(`\`sendgrid\`, \`ses\`. Each has its OWN variables (see \`.env.example\`, one section per transport); the application refuses to start without the ones it`);
+        l.push(`requires and without \`MAIL_FROM\`. To add a transport: a \`<name>.transport.ts\` in \`transports/\`, register it in \`transports/index.ts\`, add its variables to`);
+        l.push(`\`.env.example\` and \`src/config/env.validation.ts\`; \`tests/transports.spec.ts\` (ESM projects) fails until you do. The \`file\` transport writes \`.eml\` files to \`var/mail\` (git-ignored).`);
+        l.push(`**Rules.** \`main.ts\` calls \`app.enableShutdownHooks()\` (deliveries in flight finish and SMTP connections close): keep it. Never log recipients; use`);
+        l.push(`\`redactAddresses()\` for any error text. In tests replace the transport: \`.overrideProvider(MailTransport).useValue(new InMemoryMailTransport())\`, then \`assertSent()\`.`);
+        l.push(`\`@nestjs/mail\` is ESM-only and pinned exactly (0.0.x: any patch can break). Jest (CommonJS projects) loads it only on Node 24.9 or later.`);
+        if (c.hasAuth) l.push(`**With Auth:** \`MailAuthMailer\` (app/auth/services) sends the verification and reset codes through \`MailDispatcher\`; its mail classes are in \`app/auth/mails/\`, the templates in \`templates/auth/\`.`);
     }
 
     if (c.hasSock) {

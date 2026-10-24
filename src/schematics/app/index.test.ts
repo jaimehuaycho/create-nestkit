@@ -55,4 +55,42 @@ describe('app schematic', () => {
 
         expect(cli.compilerOptions.assets.length).toBeGreaterThan(0);
     });
+
+    describe('the Mailer plugin', () => {
+        it('with Auth, binds the real AuthMailer and ships its mail classes and templates', async () => {
+            const tree = await generate({ plugins: ['auth', 'mailer'] });
+
+            expect(read(tree, 'src/app/auth/auth-mailer.provider.ts')).toContain('MailAuthMailer');
+            for (const rel of [
+                'src/app/auth/services/mail-auth-mailer.service.ts', 'src/app/auth/mails/verify-email.mail.ts', 'src/app/auth/mails/reset-password.mail.ts',
+                'src/plugins/mailer/templates/auth/verify-email.html', 'src/plugins/mailer/templates/auth/reset-password.txt',
+            ]) {
+                expect(tree.exists(`/demo/${rel}`), rel).toBe(true);
+            }
+        });
+
+        it('with Auth but without Mailer, keeps the simulated AuthMailer and none of the mail files', async () => {
+            const tree = await generate({ plugins: ['auth'] });
+
+            expect(read(tree, 'src/app/auth/auth-mailer.provider.ts')).toContain('SimulatedAuthMailer');
+            expect(tree.exists('/demo/src/app/auth/services/mail-auth-mailer.service.ts')).toBe(false);
+        });
+
+        it('does not need Auth: no auth files when only the Mailer is selected', async () => {
+            const tree = await generate({ plugins: ['mailer'] });
+
+            expect(tree.exists('/demo/src/app/auth')).toBe(false);
+            expect(tree.exists('/demo/src/plugins/mailer/mailer.module.ts')).toBe(true);
+        });
+
+        it('ships its specs only in ESM projects (they use vitest)', async () => {
+            expect((await generate({ plugins: ['mailer'], type: 'esm' })).exists('/demo/src/plugins/mailer/tests/transports.spec.ts')).toBe(true);
+            expect((await generate({ plugins: ['mailer'], type: 'cjs' })).exists('/demo/src/plugins/mailer/tests/transports.spec.ts')).toBe(false);
+        });
+
+        it('git-ignores what the file transport writes', async () => {
+            expect(read(await generate({ plugins: ['mailer'] }), '.gitignore')).toMatch(/^\/var$/m);
+            expect(read(await generate({}), '.gitignore')).not.toMatch(/^\/var$/m);
+        });
+    });
 });

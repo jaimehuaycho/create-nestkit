@@ -1,36 +1,55 @@
 {
   "id": "mailer",
-  "label": "Mailer (SMTP or HTTP API)",
+  "label": "Mailer (SMTP, Resend, Postmark, SendGrid or SES)",
   "requires": [],
   "appModule": {
     "imports": [
       "import { MailerModule } from './plugins/mailer/mailer.module.js';"
     ],
     "modules": [
-      "MailerModule.register()"
+      "MailerModule"
     ]
   },
   "envVars": [
-    "MAILER_TRANSPORT",
+    "MAIL_TRANSPORT",
+    "MAIL_FROM",
     "SMTP_HOST",
     "SMTP_PORT",
     "SMTP_USER",
     "SMTP_PASS",
-    "SMTP_FROM",
-    "MAILER_API_URL",
-    "MAILER_API_KEY",
-    "MAILER_FROM"
+    "RESEND_API_KEY",
+    "POSTMARK_SERVER_TOKEN",
+    "SENDGRID_API_KEY",
+    "AWS_REGION",
+    "AWS_ACCESS_KEY_ID",
+    "AWS_SECRET_ACCESS_KEY",
+    "AWS_SESSION_TOKEN"
   ],
   "nestAssets": [
-    "plugins/mailer/templates/**/*.hbs"
+    "plugins/mailer/templates/**/*"
   ],
   "dependencies": {
     "prod": [
-      "@nestjs-modules/mailer",
-      "nodemailer",
-      "handlebars"
+      "@nestjs/mail"
     ],
     "dev": []
   },
-  "scripts": {}
+  "scripts": {},
+  "overlays": [
+    {
+      "dir": "_overlays/esm-tests",
+      "when": {
+        "moduleSystem": "esm"
+      }
+    },
+    {
+      "dir": "_overlays/auth",
+      "when": {
+        "plugin": "auth"
+      }
+    }
+  ],
+  "gitignore": [
+    "/var"
+  ]
 }

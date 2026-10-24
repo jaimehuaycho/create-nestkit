@@ -37,7 +37,7 @@ export function buildReadme(
     l.push(`- **NestJS ${NEST.major}** + TypeScript`);
     if (hasDb)   l.push(`- **TypeORM** + ${DB_LABELS[dbDriver] ?? dbDriver}`);
     if (hasAuth) l.push(`- **JWT auth** with refresh-token families, e-mail codes, optional TOTP two-factor and per-route roles, passwords hashed with **${hasher?.label ?? 'bcrypt'}**`);
-    if (hasMail) l.push(`- **Mailer** — SMTP or HTTP API (Resend-compatible), Port & Adapter pattern`);
+    if (hasMail) l.push(`- **Mailer** — Nest's mail module (\`@nestjs/mail\`): SMTP, Resend, Postmark, SendGrid or SES, chosen with \`MAIL_TRANSPORT\``);
     if (hasSock) l.push(`- **WebSockets** — Socket.io`);
     if (hasPdf)  l.push(`- **PDF generation** — Puppeteer`);
     if (hasObserve) l.push(`- **Observability** — Nest Observe (tracing, metrics, logs) — needs credentials from observe.nestjs.com`);

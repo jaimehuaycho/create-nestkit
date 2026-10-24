@@ -84,7 +84,7 @@ describe('format.cjs hook', () => {
         const file = path.join(project, 'a.ts');
         fs.writeFileSync(file, 'const   a  =  1');
         expect(runHook('format.cjs', edit(file), project).status).toBe(0);   // no prettier here: best effort
-    });
+    }, 30_000);   // the hook really runs `npx --no-install prettier` (its own timeout is 20 s): slow when the machine is busy
 
     it('never breaks the session on malformed input', () => {
         expect(runHook('format.cjs', 'not json', project).status).toBe(0);

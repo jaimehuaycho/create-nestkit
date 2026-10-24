@@ -1,0 +1,5 @@
+Confirm your e-mail
+
+Your verification code is: {{ code }}
+
+It works for {{ lifetime }}. If you did not create an account, ignore this message.

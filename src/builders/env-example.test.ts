@@ -74,7 +74,7 @@ describe('buildEnvExample', () => {
 
         it('keeps every variable of every selected plugin', () => {
             const result = buildEnvExample(ALL, 'postgres', TEMPLATES);
-            for (const name of ['NODE_ENV', 'DB_TYPE', 'SEED_ROOT_EMAIL', 'JWT_SECRET', 'MAILER_TRANSPORT', 'OBSERVE_APP_KEY']) {
+            for (const name of ['NODE_ENV', 'DB_TYPE', 'SEED_ROOT_EMAIL', 'JWT_SECRET', 'MAIL_TRANSPORT', 'OBSERVE_APP_KEY']) {
                 expect(result).toContain(name);
             }
         });
