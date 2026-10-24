@@ -4,6 +4,7 @@ import { pathToFileURL } from 'url';
 import { MergeStrategy, Rule, Tree, apply, chain, externalSchematic, filter, mergeWith, move, url } from '@angular-devkit/schematics';
 import { DB_DRIVERS, loadManifest, resolvePlugins } from '../../generator';
 import { buildAppModule } from '../../builders/app-module';
+import { APP_NAME_PATH, buildAppName } from '../../builders/app-name';
 import { buildAllClaudeFiles } from '../../builders/claude-md';
 import { buildDockerCompose } from '../../builders/docker-compose';
 import { buildDockerfile } from '../../builders/dockerfile';
@@ -91,7 +92,8 @@ export function main(options: AppOptions): Rule {
         (tree: Tree) => {
             if (hasher) put(tree, PASSWORD_UTIL_PATH, hasher.source);
 
-            put(tree, 'src/main.ts', buildMainTs(manifests, dbDriver, root));
+            put(tree, 'src/main.ts', buildMainTs(manifests, dbDriver));
+            put(tree, APP_NAME_PATH, buildAppName(root));
             put(tree, 'src/app/health/controllers/health.controller.ts', buildHealthController(manifests));
             // Replaces Nest's boilerplate README (framework branding) with one describing what this project contains.
             put(tree, 'README.md', buildReadme(manifests, dbDriver, root, hasher));

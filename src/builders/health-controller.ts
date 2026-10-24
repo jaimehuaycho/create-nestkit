@@ -12,6 +12,7 @@ export function buildHealthController(manifests: Manifest[]): string {
 
     lines.push(`import { Controller, Get } from '@nestjs/common';`);
     lines.push(`import { ApiOperation, ApiTags } from '@nestjs/swagger';`);
+    lines.push(`import { SkipThrottle } from '@nestjs/throttler';`);
     lines.push(`import {`);
     lines.push(`    HealthCheck, HealthCheckService,`);
     lines.push(hasDb
@@ -22,6 +23,8 @@ export function buildHealthController(manifests: Manifest[]): string {
 
     lines.push(``);
     if (hasAuth) lines.push(`// @Public() — Docker, Kubernetes, and monitoring tools have no JWT token.`);
+    lines.push(`// @SkipThrottle() — they all poll from the same few IPs, so the rate limit must not apply to them.`);
+    lines.push(`@SkipThrottle()`);
     lines.push(`@ApiTags('Health')`);
     lines.push(`@Controller('health')`);
     lines.push(`export class HealthController {`);

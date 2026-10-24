@@ -28,6 +28,14 @@ All notable changes to this project are documented here. The format follows
   second prompt from the Nest CLI.
   TypeScript for development moved to 6, the peer range of `@nestjs/schematics` 12.
 
+### Security
+- **Every generated project now ships baseline hardening, with or without Auth:** `helmet` security headers (CSP off only while
+  Swagger UI is on, no `X-Powered-By`); rate limiting for the whole API (`RateLimitModule`, global `ThrottlerGuard`,
+  `@StrictRateLimit()` for sign-in-like routes) configured with `THROTTLE_TTL`, `THROTTLE_LIMIT`, `THROTTLE_STRICT_TTL`,
+  `THROTTLE_STRICT_LIMIT` and `TRUST_PROXY` (health checks are exempt); CORS never sends credentials when any origin is
+  allowed, and production refuses to start with `CORS_ORIGINS=*`; list endpoints cap the page size at 100.
+  New dependencies in every project: `helmet`, `@nestjs/throttler`.
+
 ### Added
 - **Choose the password hashing algorithm when Auth is selected:** bcrypt (default) or Argon2id. The generated
   `src/shared/security/password.util.ts` exports the same `hashPassword`, `comparePassword` and `PASSWORD_MAX_BYTES` for

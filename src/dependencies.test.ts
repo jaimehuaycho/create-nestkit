@@ -34,8 +34,10 @@ describe('dependency version ranges', () => {
     });
 
     it('@nestjs/* packages are pinned by the Nest profile, never by this table', () => {
+        // Not coupled to the Nest major: observe (0.x) and throttler (6.x) have their own version lines.
+        const OWN_VERSION_LINE = ['@nestjs/observe', '@nestjs/throttler'];
         for (const name of Object.keys(DEPENDENCY_RANGES)) {
-            if (name.startsWith('@nestjs/') && !name.startsWith('@nestjs/observe')) {
+            if (name.startsWith('@nestjs/') && !OWN_VERSION_LINE.some(own => name.startsWith(own))) {
                 throw new Error(`${name} belongs in NEST.packages`);
             }
         }

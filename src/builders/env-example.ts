@@ -6,8 +6,19 @@ NODE_ENV=development
 PORT=3000
 API_PREFIX=api
 
-# CORS — '*', a single origin, or a comma-separated list of origins
+# CORS — a single origin or a comma-separated list. '*' (any origin) is accepted in development only: production refuses to start with it.
 CORS_ORIGINS=*
+
+# Reverse proxy / load balancer in front of the app: how many proxies sit between the client and the API (1, 2...), or leave empty.
+# Needed for correct client IPs (rate limiting counts per IP). Do not use true: a client could forge X-Forwarded-For.
+TRUST_PROXY=
+
+# Rate limiting, per client IP. Every route: THROTTLE_LIMIT requests per THROTTLE_TTL window.
+# Routes marked @StrictRateLimit() (sign-in, register, password reset) also get THROTTLE_STRICT_LIMIT per THROTTLE_STRICT_TTL.
+THROTTLE_TTL=1m
+THROTTLE_LIMIT=100
+THROTTLE_STRICT_TTL=1m
+THROTTLE_STRICT_LIMIT=10
 `;
 
 const DB_ENV: Record<string, string> = {

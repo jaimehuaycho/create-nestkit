@@ -18,6 +18,8 @@ export const DEPENDENCY_RANGES: Record<string, string> = {
     dotenv:                '^18',
     'class-validator':     '^0.15',
     'class-transformer':   '^0.5',
+    helmet:                '^8',
+    '@nestjs/throttler':   '^6',   // not coupled to the Nest major: it has its own version line
 
     // database
     typeorm:               '^1',

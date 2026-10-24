@@ -39,6 +39,8 @@ export const CORE_PROD_DEPENDENCIES = [
     '@nestjs/config',
     '@nestjs/swagger',
     '@nestjs/terminus',
+    '@nestjs/throttler',
+    'helmet',
     'joi',
     'dotenv',
     'class-validator',

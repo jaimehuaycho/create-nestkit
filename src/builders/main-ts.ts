@@ -5,7 +5,7 @@ import { Manifest } from '../generator';
  * Core imports are always included; plugin-specific imports and banner fields
  * are injected only when the relevant plugin is in the resolved set.
  */
-export function buildMainTs(manifests: Manifest[], dbDriver: string, projectName: string): string {
+export function buildMainTs(manifests: Manifest[], dbDriver: string): string {
     const ids       = new Set(manifests.map(m => m.id));
     const hasDb      = ids.has('database');
     const hasAuth    = ids.has('auth');
@@ -19,11 +19,14 @@ export function buildMainTs(manifests: Manifest[], dbDriver: string, projectName
     lines.push(``);
     if (isPostgres) lines.push(`import { types } from 'pg';`);
     lines.push(`import { NestFactory } from '@nestjs/core';`);
+    lines.push(`import helmet from 'helmet';`);
     lines.push(`import { ValidationPipe } from '@nestjs/common';`);
     lines.push(`import { AppModule } from './app.module.js';`);
     lines.push(`import { AppConfig } from './config/services/app.config.js';`);
     lines.push(`import { getEnvSettings } from './config/helpers/environment.js';`);
     lines.push(`import { getCorsOptions } from './config/helpers/cors.js';`);
+    lines.push(`import { parseTrustProxy } from './config/helpers/proxy.js';`);
+    lines.push(`import { APP_NAME } from './config/app-name.js';`);
     lines.push(`import { setupSwagger } from './config/helpers/swagger.js';`);
     lines.push(`import { logServerStatus } from './config/helpers/logger.js';`);
     lines.push(`import { HttpExceptionFilter } from './shared/filters/index.js';`);
@@ -46,14 +49,21 @@ export function buildMainTs(manifests: Manifest[], dbDriver: string, projectName
         : `    const app = await NestFactory.create(AppModule, { logger });`);
     lines.push(`    const cfg = app.get(AppConfig);`);
     lines.push(``);
+    lines.push(`    // Security headers (also removes X-Powered-By). The Content-Security-Policy is skipped only while Swagger UI is on: its page`);
+    lines.push(`    // needs inline scripts. In production Swagger is off and the full policy applies.`);
+    lines.push(`    app.use(helmet({ contentSecurityPolicy: swagger ? false : undefined }));`);
+    lines.push(``);
     lines.push(`    // Lets SIGTERM (docker stop, Kubernetes) finish the work in flight and close connections (database, mail) instead of cutting them.`);
     lines.push(`    app.enableShutdownHooks();`);
     lines.push(``);
     lines.push(`    app.setGlobalPrefix(cfg.apiPrefix);`);
     lines.push(``);
+    lines.push(`    const trustProxy = parseTrustProxy(cfg.trustProxy);`);
+    lines.push(`    if (trustProxy !== undefined) app.getHttpAdapter().getInstance().set('trust proxy', trustProxy);`);
+    lines.push(``);
     lines.push(`    if (swagger) {`);
     lines.push(`        setupSwagger(app, {`);
-    lines.push(`            title:       '${projectName}',`);
+    lines.push(`            title:       APP_NAME,`);
     lines.push(`            description: 'API Documentation',`);
     lines.push(`            version:     '1.0',`);
     lines.push(`            path:        'api/docs',`);
@@ -76,7 +86,7 @@ export function buildMainTs(manifests: Manifest[], dbDriver: string, projectName
     if (hasAuth) lines.push(`    const jwtCfg = app.get(JwtConfig,      { strict: false });`);
     if (hasDb)   lines.push(`    const dbCfg  = app.get(DatabaseConfig, { strict: false });`);
     lines.push(``);
-    lines.push(`    logServerStatus(cfg, '${projectName}', {`);
+    lines.push(`    logServerStatus(cfg, APP_NAME, {`);
     lines.push(`        swagger:   swagger,`);
     lines.push(`        docsPath:  'api/docs',`);
     lines.push(`        cors:      cfg.corsOrigins,`);
