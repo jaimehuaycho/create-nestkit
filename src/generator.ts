@@ -163,6 +163,16 @@ export interface Manifest {
     allowScripts?: string[];
     // Non-TypeScript files this plugin needs in dist/ (globs relative to src/), written into nest-cli.json `assets`.
     nestAssets?: string[];
+    // Extra files laid over the project only when a condition holds, e.g. how this plugin plugs into another one, or tests that
+    // need the ESM runner. `dir` is relative to the plugin folder and has the same `src/` layout as the plugin's own.
+    overlays?: PluginOverlay[];
+    // Lines for the project's .gitignore: files this plugin writes while running (for example the mailer's `file` transport writes /var/mail).
+    gitignore?: string[];
+}
+
+export interface PluginOverlay {
+    dir:  string;
+    when: { plugin?: string; moduleSystem?: 'esm' | 'cjs' };
 }
 
 export function loadManifest(pluginId: string): Manifest {

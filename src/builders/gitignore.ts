@@ -1,3 +1,5 @@
+import { Manifest } from '../generator';
+
 // What a generated project must never commit. `nest new --skip-git` writes NO .gitignore: the CLI creates it only when it also runs `git init`
 // (it is not published inside @nestjs/schematics either), and create-nestkit always skips git, so the project would be left with nothing
 // ignored, `.env` and `node_modules` included. This is Nest's own default list (@nestjs/cli, MIT) plus `.env.*` (the CLI misses `.env.production`).
@@ -80,8 +82,10 @@ export function withClaudeIgnores(existing: string): string {
 }
 
 // The .gitignore of a generated project: Nest's default when there is none, whatever exists plus the required lines otherwise,
-// and always the personal Claude Code files. Idempotent.
-export function buildGitignore(existing: string): string {
-    const base = existing.trim() === '' ? DEFAULT_GITIGNORE : existing;
-    return withClaudeIgnores(appendMissing(base, REQUIRED_IGNORES, 'Added by create-nestkit'));
+// the lines the selected plugins declare (`gitignore` in their manifest: files they write at runtime), and always the personal
+// Claude Code files. Idempotent.
+export function buildGitignore(existing: string, manifests: Pick<Manifest, 'gitignore'>[] = []): string {
+    const base    = existing.trim() === '' ? DEFAULT_GITIGNORE : existing;
+    const plugins = manifests.flatMap(m => m.gitignore ?? []);
+    return withClaudeIgnores(appendMissing(appendMissing(base, REQUIRED_IGNORES, 'Added by create-nestkit'), plugins, 'Written at runtime by plugins'));
 }

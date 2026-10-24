@@ -20,6 +20,7 @@ import { buildReadme } from '../../builders/readme';
 import { SEED_PATH, buildEmptySeed } from '../../builders/seed';
 import { buildSettingsJson } from '../../builders/settings-json';
 import { buildTsconfig } from '../../builders/tsconfig';
+import { activeOverlays } from '../../overlays';
 
 // dist/schematics/app (or src/schematics/app) -> the package root's templates/.
 const TEMPLATES_DIR = path.join(__dirname, '..', '..', '..', 'templates');
@@ -87,6 +88,10 @@ export function main(options: AppOptions): Rule {
         ...resolvedIds
             .filter(id => fs.existsSync(path.join(TEMPLATES_DIR, 'plugins', id, 'src')))
             .map(id => fromTemplates(`plugins/${id}/src`, at('src'))),
+        // Conditional layers (how a plugin plugs into another one, ESM-only tests...), after every plugin so they can replace its files.
+        ...activeOverlays(manifests, options.type ?? 'esm')
+            .filter(dir => fs.existsSync(path.join(TEMPLATES_DIR, dir, 'src')))
+            .map(dir => fromTemplates(`${dir}/src`, at('src'))),
 
         // 6. Dynamic files, from the pure builders.
         (tree: Tree) => {
@@ -134,6 +139,6 @@ export function main(options: AppOptions): Rule {
         // /nest-module and /db-map scaffold TypeORM entities: meaningless without a database.
         ...(manifests.some(m => m.id === 'database') ? [fromTemplates('core/.claude/skills-db', at('.claude/skills'))] : []),
         // `nest new --skip-git` writes no .gitignore, so this builds the whole file.
-        (tree: Tree) => put(tree, '.gitignore', buildGitignore(tree.exists(at('.gitignore')) ? text(tree, '.gitignore') : '')),
+        (tree: Tree) => put(tree, '.gitignore', buildGitignore(tree.exists(at('.gitignore')) ? text(tree, '.gitignore') : '', manifests)),
     ]);
 }
