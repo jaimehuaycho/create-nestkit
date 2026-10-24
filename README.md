@@ -21,18 +21,18 @@ Versions below come from the official NestJS 12 documentation ([First steps](htt
 
 | | Version |
 |---|---|
-| **Node.js to scaffold** (this CLI and `@nestjs/cli` 12) | `^22.22.3`, `^24.15.0` or `>=26`. Node 21, 23 and 25 are not supported: the Nest CLI depends on the Angular devkit. |
+| **Node.js to scaffold** (this CLI and Nest's 12 schematics) | `^22.22.3`, `^24.15.0` or `>=26`. Node 21, 23 and 25 are not supported: the schematics engine is the Angular devkit. |
 | **Node.js to run a generated app** | `20.19+`, `22.12+` (on the 22 line) or `24+`. The generated `Dockerfile` uses Node 22. |
 | **npm** | The one bundled with those Node versions. npm 11 is recommended: it understands the `allowScripts` policy the generated project declares. |
-| **NestJS** | **12.** The CLI runs `@nestjs/cli@^12` through `npx`, so you do not need Nest installed globally, and the `@nestjs/*` packages are pinned to `^12`. |
+| **NestJS** | **12.** The project is built with Nest's own 12 `application` schematic, bundled with this CLI, so you do not need Nest installed globally, and the `@nestjs/*` packages are pinned to `^12`. |
 
-If you pick **CommonJS with Jest** at Nest's prompt, note that Jest can load Nest 12's ESM-only packages only on
+If you pick **CommonJS with Jest** when asked which module system to use, note that Jest can load Nest 12's ESM-only packages only on
 **Node 24.9 or later** (older versions fail with `ERR_REQUIRE_ASYNC_MODULE`). The ESM option, which uses Vitest, has no such limit.
 
 ### Which NestJS version this scaffold targets
 
 This release scaffolds **NestJS 12 only**, and reproduces what `nest new` 12 generates: TypeScript 6, Prettier 3, oxlint,
-and the module system and test runner you pick at Nest's own prompt (ESM with Vitest, or CommonJS with Jest).
+and the module system and test runner you pick when prompted (ESM with Vitest, or CommonJS with Jest).
 There is no detection of a globally installed `nest`, and NestJS 11 is not supported.
 
 When NestJS ships a new major, create-nestkit moves to it and publishes a new major version. Older NestJS majors are not
