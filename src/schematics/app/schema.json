@@ -1,0 +1,14 @@
+{
+  "$schema": "http://json-schema.org/schema",
+  "$id": "create-nestkit-app",
+  "title": "create-nestkit project",
+  "type": "object",
+  "properties": {
+    "name":           { "type": "string", "description": "Project name (also its directory)." },
+    "type":           { "type": "string", "enum": ["esm", "cjs"], "default": "esm", "description": "Module system of the generated project." },
+    "plugins":        { "type": "array", "items": { "type": "string" }, "default": [], "description": "Selected plugin ids; their dependencies are added." },
+    "dbDriver":       { "type": "string", "enum": ["postgres", "mysql", "mariadb", "mssql"], "default": "postgres" },
+    "passwordHasher": { "type": "string", "description": "Password hashing algorithm id (only used with Auth)." }
+  },
+  "required": ["name"]
+}

@@ -29,6 +29,9 @@ const required = [
     'LICENSE',
     'dist/index.js',
     'dist/generator.js',
+    // The schematics engine reads these by path, tsc does not emit them (scripts/copy-schematic-assets.mjs).
+    'dist/schematics/collection.json',
+    'dist/schematics/app/schema.json',
     'templates/base/tsconfig.json',
     'templates/core/src/app.module.ts',
     // What every generated project's .claude/ is built from.
