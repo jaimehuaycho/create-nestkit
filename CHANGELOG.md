@@ -29,12 +29,12 @@ All notable changes to this project are documented here. The format follows
   TypeScript for development moved to 6, the peer range of `@nestjs/schematics` 12.
 
 ### Security
-- **Every generated project now ships baseline hardening, with or without Auth:** `helmet` security headers (CSP off only while
-  Swagger UI is on, no `X-Powered-By`); rate limiting for the whole API (`RateLimitModule`, global `ThrottlerGuard`,
+- **Every generated project now ships baseline hardening, with or without Auth:** security headers through Nest's built-in `app.useSecurityHeaders()` (Nest 12.1+; the
+  same defaults as Helmet 8, no extra package; CSP off only while Swagger UI is on, no `X-Powered-By`); rate limiting for the whole API (`RateLimitModule`, global `ThrottlerGuard`,
   `@StrictRateLimit()` for sign-in-like routes) configured with `THROTTLE_TTL`, `THROTTLE_LIMIT`, `THROTTLE_STRICT_TTL`,
   `THROTTLE_STRICT_LIMIT` and `TRUST_PROXY` (health checks are exempt); CORS never sends credentials when any origin is
   allowed, and production refuses to start with `CORS_ORIGINS=*`; list endpoints cap the page size at 100.
-  New dependencies in every project: `helmet`, `@nestjs/throttler`.
+  New dependency in every project: `@nestjs/throttler`.
 
 ### Added
 - **Choose the password hashing algorithm when Auth is selected:** bcrypt (default) or Argon2id. The generated

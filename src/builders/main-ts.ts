@@ -19,7 +19,6 @@ export function buildMainTs(manifests: Manifest[], dbDriver: string): string {
     lines.push(``);
     if (isPostgres) lines.push(`import { types } from 'pg';`);
     lines.push(`import { NestFactory } from '@nestjs/core';`);
-    lines.push(`import helmet from 'helmet';`);
     lines.push(`import { ValidationPipe } from '@nestjs/common';`);
     lines.push(`import { AppModule } from './app.module.js';`);
     lines.push(`import { AppConfig } from './config/services/app.config.js';`);
@@ -49,9 +48,9 @@ export function buildMainTs(manifests: Manifest[], dbDriver: string): string {
         : `    const app = await NestFactory.create(AppModule, { logger });`);
     lines.push(`    const cfg = app.get(AppConfig);`);
     lines.push(``);
-    lines.push(`    // Security headers (also removes X-Powered-By). The Content-Security-Policy is skipped only while Swagger UI is on: its page`);
-    lines.push(`    // needs inline scripts. In production Swagger is off and the full policy applies.`);
-    lines.push(`    app.use(helmet({ contentSecurityPolicy: swagger ? false : undefined }));`);
+    lines.push(`    // Security headers with Nest's own defaults (the same as Helmet 8; also removes X-Powered-By). The Content-Security-Policy is`);
+    lines.push(`    // skipped only while Swagger UI is on. In production Swagger is off and the full policy applies.`);
+    lines.push(`    app.useSecurityHeaders({ contentSecurityPolicy: !swagger });`);
     lines.push(``);
     lines.push(`    // Lets SIGTERM (docker stop, Kubernetes) finish the work in flight and close connections (database, mail) instead of cutting them.`);
     lines.push(`    app.enableShutdownHooks();`);

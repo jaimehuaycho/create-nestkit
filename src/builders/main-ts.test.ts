@@ -70,9 +70,9 @@ describe('buildMainTs', () => {
     it('applies security headers before anything else is registered, for every project', () => {
         for (const manifests of [[], [fakeManifest('auth'), fakeManifest('database')]]) {
             const result = buildMainTs(manifests, 'postgres');
-            expect(result).toContain("import helmet from 'helmet';");
-            expect(result).toContain('app.use(helmet(');
-            expect(result.indexOf('app.use(helmet(')).toBeLessThan(result.indexOf('app.enableCors('));
+            expect(result).toContain('app.useSecurityHeaders(');
+            expect(result).not.toContain('helmet');   // Nest 12.1 sets the same headers itself: no extra package
+            expect(result.indexOf('app.useSecurityHeaders(')).toBeLessThan(result.indexOf('app.enableCors('));
         }
     });
 
