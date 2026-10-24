@@ -64,7 +64,7 @@ export function buildClaudeMd(manifests: Manifest[], dbDriver: string, projectNa
         l.push(`npm run migration:run`);
         l.push(`npm run migration:revert`);
         l.push(c.hasAuth
-            ? `npm run seed           # role hierarchy (root/admin/user) + root user, idempotent`
+            ? `npm run seed           # roles (root/admin/user) + root user, idempotent; prints a random root password once if SEED_ROOT_PASSWORD is empty`
             : `npm run seed           # empty seed script: add your seeders`);
     }
     l.push(`\`\`\``);
@@ -347,12 +347,12 @@ export function buildSharedClaudeMd(c: ReturnType<typeof ctx>): string {
         l.push(`// In a controller method:`);
         l.push(`async logout(@CurrentUser() user: AuthUser): Promise<void>`);
         l.push(`async getProfile(@CurrentUser('id') id: number): Promise<UserDto>`);
-        l.push(`// AuthUser = { id, email, roleId } — what JwtStrategy puts in req.user`);
+        l.push(`// AuthUser = { id, roles, emailVerified, twoFactor } — what JwtStrategy puts in req.user (no e-mail: it goes stale inside a token)`);
         l.push(`\`\`\``);
     }
 
     l.push(``, `## Other Shared Utilities`);
-    if (c.hasAuth) l.push(`- \`src/shared/security/password.util.ts\` → \`hashPassword(plain)\`, \`comparePassword(plain, hash)\`, \`PASSWORD_MAX_BYTES\` (${c.hasher.label}, max ${c.hasher.maxBytes} bytes)`);
+    if (c.hasAuth) l.push(`- \`src/shared/security/password.util.ts\` → \`hashPassword(plain)\`, \`comparePassword(plain, hash)\`, \`needsRehash(hash)\`, \`PASSWORD_MIN_LENGTH\` (12), \`PASSWORD_MAX_BYTES\` (${c.hasher.label}, max ${c.hasher.maxBytes} bytes)`);
     l.push(`- \`src/shared/utils/code-generator.util.ts\` → \`generateCode(length)\` random alphanumeric`);
     l.push(`- \`src/shared/utils/transformers.util.ts\` → \`transformToBoolean(value, name)\` for query params`);
     l.push(`- \`src/shared/dto/error-response.dto.ts\` → Swagger schema for error responses`);
@@ -482,55 +482,77 @@ export function buildAuthClaudeMd(hasher: PasswordHasher): string {
     const l: string[] = [];
 
     l.push(`# app/auth/ — Auth Reference`);
-    l.push(``, `JWT authentication with refresh token rotation. Refresh tokens are stored hashed — never in plain text.`);
+    l.push(``, `JWT access tokens + opaque refresh tokens in families, e-mail codes, optional TOTP two-factor and an explicit list of roles per route.`);
+    l.push(`Logic lives in \`app/auth/\`; the data it needs lives in plain modules (\`modules/users\`, \`roles\`, \`refresh-tokens\`, \`email-codes\`, \`two-factor\`).`);
 
-    l.push(``, `## Guards (applied globally via APP_GUARD in auth.module.ts)`);
-    l.push(`- **JwtAuthGuard** — verifies the JWT on every request. Routes marked \`@Public()\` are exempt.`);
-    l.push(`- **RolesGuard** — checks \`user.roleId <= requiredRole\`. Routes without \`@RootOnly/AdminUp/UserUp\` are exempt.`);
-    l.push(`Both guards are registered as \`APP_GUARD\` — removing \`AuthModule\` from \`AppModule\` disables them globally.`);
+    l.push(``, `## Guards (registered globally, in this order, by auth.module.ts)`);
+    l.push(`- **JwtAuthGuard** — verifies the access token on every request. Routes marked \`@Public()\` are exempt. A failure is 401 with a \`WWW-Authenticate\` header.`);
+    l.push(`- **RolesGuard** — if the route (or controller) has \`@Roles(...)\`, the user needs AT LEAST ONE of them, else 403 \`INSUFFICIENT_PERMISSIONS\`. No \`@Roles()\` = any signed-in user.`);
+    l.push(`- **VerifiedEmailGuard** / **TwoFactorGuard** — act only on routes marked \`@VerifiedEmail()\` / \`@RequireTwoFactor()\`.`);
+    l.push(`Removing \`AuthModule\` from \`AppModule\` removes every one of them.`);
 
-    l.push(``, `## Decorators`);
+    l.push(``, `## Roles: by NAME, listed explicitly, no hierarchy`);
+    l.push(`A role is a text name (\`root\`, \`admin\`, \`user\`) that is the primary key of \`roles\`. **Never write a role as a string literal:** use \`RoleEnum\``);
+    l.push(`(\`src/shared/enums/role.enum.ts\`) in decorators, seeds, DTOs and messages. To add a role: add it to \`RoleEnum\`, seed it, list it in the routes that allow it.`);
+    l.push(`A higher role does NOT include a lower one: \`@Roles(RoleEnum.ADMIN)\` excludes root unless root is listed too.`);
     l.push(`\`\`\`typescript`);
-    l.push(`import { Public, CurrentUser } from '../../../app/auth/decorators/index.js';`);
-    l.push(`import { AdminUp, RootOnly, UserUp, Roles } from '../../../app/auth/decorators/index.js';`);
+    l.push(`import { Public, CurrentUser, Roles, VerifiedEmail, RequireTwoFactor } from '../../../app/auth/decorators/index.js';`);
+    l.push(`import { RoleEnum } from '../../../shared/enums/index.js';`);
     l.push(`import type { AuthUser } from '../../../app/auth/strategies/jwt.strategy.js';`);
     l.push(``);
-    l.push(`@Public()            // bypass JwtAuthGuard for this route`);
-    l.push(`@RootOnly()          // roleId must be 1 (root) — also adds @ApiForbiddenResponse`);
-    l.push(`@AdminUp()           // roleId must be ≤ 2 (admin or root)`);
-    l.push(`@UserUp()            // roleId must be ≤ 3 (any authenticated user)`);
-    l.push(`// In controllers always use the above — never raw @Roles(n)`);
+    l.push(`@Public()                                  // bypass JwtAuthGuard`);
+    l.push(`@Roles(RoleEnum.ROOT, RoleEnum.ADMIN)      // any of these (also documents 403 in Swagger)`);
+    l.push(`@VerifiedEmail()                           // the address must be confirmed (else 403 EMAIL_NOT_VERIFIED)`);
+    l.push(`@RequireTwoFactor()                        // the session was opened with a second factor`);
+    l.push(`@StrictRateLimit()                         // from app/rate-limit: the strict tier, for sign-in-like routes`);
     l.push(``);
-    l.push(`@CurrentUser()               // → AuthUser = { id, email, roleId }`);
-    l.push(`@CurrentUser('id')           // → number`);
-    l.push(`@CurrentUser('roleId')       // → number`);
+    l.push(`@CurrentUser()                             // → AuthUser = { id, roles, emailVerified, twoFactor }`);
+    l.push(`@CurrentUser('id')                         // → number`);
     l.push(`\`\`\``);
+    l.push(`Rules that depend on WHICH record is touched (own record only, an admin cannot touch a root...) are not in \`@Roles()\`: they live in`);
+    l.push(`\`UserAccessService\` (\`assertCanRead/Update/Delete/AssignRole\`), called by the users controller. Follow that shape for your own resources.`);
 
-    l.push(``, `## JWT Payload and AuthUser`);
+    l.push(``, `## Tokens`);
     l.push(`\`\`\`typescript`);
-    l.push(`// What is signed into the token (JwtPayload):`);
-    l.push(`{ sub: number, email: string, roleId: number }`);
-    l.push(``);
-    l.push(`// What JwtStrategy puts into req.user (AuthUser):`);
-    l.push(`{ id: number, email: string, roleId: number }`);
+    l.push(`// Access token (JWT, HS256, JWT_TIME_EXPIRE, default 15m). Claims: sub, roles, email_verified, amr ('pwd' or ['pwd','otp']), iss, aud, jti, iat, exp.`);
+    l.push(`// iss and aud are APP_NAME (src/config/app-name.ts): a token minted for another app that shares the secret is rejected.`);
+    l.push(`// Roles in the token go stale until it expires (<= 15 min): a role change reaches the user at the next refresh.`);
     l.push(`\`\`\``);
+    l.push(`Refresh tokens are **opaque** (256 random bits, not JWTs) and stored only as a SHA-256 digest in \`refresh_tokens\`.`);
+
+    l.push(``, `## Refresh-token families (rotation)`);
+    l.push(`Every sign-in starts a family (one per device). Each refresh is single use and returns a new token of the same family.`);
+    l.push(`- A token past \`REFRESH_TOKEN_TTL\` (default 7d) or whose family is past \`REFRESH_FAMILY_TTL\` (default 30d, absolute: rotating cannot extend it) is refused.`);
+    l.push(`- **Reuse** of a rotated-out token revokes the WHOLE family (401 \`REFRESH_TOKEN_REUSED\`); other devices are not affected.`);
+    l.push(`- \`POST /auth/logout\` ends this device; \`POST /auth/logout-all\` ends every device. A password change or reset revokes every session.`);
+
+    l.push(``, `## E-mail codes and account flows (\`AccountService\`, \`EmailCodesService\`)`);
+    l.push(`Verification and password reset use a 6-digit **code** (not a link): stored as an HMAC, single use, expiring, at most 5 attempts, a newer code replaces the older.`);
+    l.push(`\`POST /auth/password/forgot\` always answers 202 and takes the same time whether the account exists or not (no enumeration).`);
+    l.push(`Changing the e-mail unverifies it. **\`AuthMailer\` is a SIMULATED mailer:** it only logs \`SIMULATED EMAIL {...}\`. Replace its implementation with the`);
+    l.push(`Mailer plugin (or your own) before production: the flows do not change.`);
+
+    l.push(``, `## Two-factor (TOTP) — \`/auth/2fa/*\``);
+    l.push(`Setup returns a secret + \`otpauth://\` URI; \`enable\` confirms with a code and returns one-time recovery codes. The secret is encrypted at rest`);
+    l.push(`(AES-256-GCM, key \`TWO_FACTOR_ENCRYPTION_KEY\`: lose it and users must set 2FA up again). Login then returns \`{ twoFactorRequired: true, challengeToken }\` (valid 5 minutes) to complete at \`/auth/2fa/verify\`.`);
+    l.push(`A code is accepted once (replay-proof) within ±1 time step; every 2FA route is on the strict rate limit. A wrong code is 401 while signing in and 403 when signed in.`);
+
+    l.push(``, `## Public sign-up never takes a role`);
+    l.push(`\`POST /auth/register\` always creates the default role (\`user\`); a \`role\` or \`roleId\` in the body is rejected (400). Only \`POST /users\` / \`PUT /users/:id\``);
+    l.push(`can set one, and only root may give any role (an admin may only give \`user\`; nobody promotes above themselves). Keep it that way when you add fields.`);
 
     l.push(``, `## UserForAuthDto — internal auth DTO`);
     l.push(`\`\`\`typescript`);
     l.push(`import { UserForAuthDto } from '../../../modules/users/dto/user-for-auth.dto.js';`);
-    l.push(``);
-    l.push(`// Used in auth.service.ts — includes password and refreshToken`);
-    l.push(`const user = await usersService.findOneByEmail(UserForAuthDto, email, { throwException: false });`);
-    l.push(`// user.password, user.refreshToken are available`);
-    l.push(``);
-    l.push(`// NEVER return UserForAuthDto in an HTTP response.`);
-    l.push(`// For public-facing user data always use UserDto.`);
+    l.push(`// Includes the password hash: used only inside auth services.`);
+    l.push(`// NEVER return UserForAuthDto in an HTTP response. For public-facing user data always use UserDto.`);
     l.push(`\`\`\``);
 
     l.push(``, `## Password hashing (${hasher.label})`);
-    l.push(`\`src/shared/security/password.util.ts\` is generated for the algorithm chosen at scaffold time and exports \`hashPassword\`,`);
-    l.push(`\`comparePassword\` and \`PASSWORD_MAX_BYTES\`. Everything else imports only those, so swapping the algorithm means`);
-    l.push(`rewriting that one file (and migrating stored hashes).`);
+    l.push(`\`src/shared/security/password.util.ts\` is generated for the algorithm chosen at scaffold time and exports \`hashPassword\`, \`comparePassword\`,`);
+    l.push(`\`needsRehash\`, \`PASSWORD_MIN_LENGTH\` (12) and \`PASSWORD_MAX_BYTES\`. Everything else imports only those, so swapping the algorithm means`);
+    l.push(`rewriting that one file (and migrating stored hashes). On login, a hash made with weaker parameters is silently re-hashed (\`needsRehash\`),`);
+    l.push(`and an unknown e-mail still pays for one hash, so response time does not reveal which accounts exist.`);
     if (hasher.id === 'bcrypt') {
         l.push(`bcrypt only reads the first 72 BYTES, so \`PASSWORD_MAX_BYTES\` is 72 and the DTOs reject longer passwords with`);
         l.push(`\`@MaxBytes\` instead of letting them be silently truncated. Cost factor 10 (OWASP minimum).`);
@@ -539,26 +561,18 @@ export function buildAuthClaudeMd(hasher: PasswordHasher): string {
         l.push(`No truncation, so \`PASSWORD_MAX_BYTES\` (${hasher.maxBytes}) is only a guard against absurdly long inputs, enforced by \`@MaxBytes\`.`);
     }
 
-    l.push(``, `## Token Rotation (refresh)`);
-    l.push(`1. Client sends refresh token → server verifies signature and expiry.`);
-    l.push(`2. Server compares the token with the stored SHA-256 digest (\`matchesRefreshToken\`, constant time). Never bcrypt: it only reads 72 bytes.`);
-    l.push(`3. If match → issue new access + refresh pair, revoke old refresh token.`);
-    l.push(`4. If mismatch (a rotated-out token is being replayed) → revoke ALL sessions (\`setRefreshToken(id, null)\`).`);
-    l.push(`Each refresh token carries a unique \`jti\`.`);
-    l.push(`Access tokens expire in \`JWT_TIME_EXPIRE\` (default 15m). Refresh tokens in \`JWT_REFRESH_TIME_EXPIRE\` (default 7d).`);
-
     l.push(``, `## Malleability — Adapting to a Different Users Table`);
     l.push(`If the users table doesn't have \`email\` / \`password\` (e.g., uses \`username\`):`);
     l.push(`1. Update \`UserForAuthDto\` fields to match the auth fields you need.`);
     l.push(`2. Update \`auth.service.ts login()\` — replace \`findOneByEmail\` with the appropriate lookup.`);
-    l.push(`3. Keep everything else (JWT, rotation, guards, decorators) as-is.`);
-    l.push(`Role hierarchy numbers (1/2/3) can be changed in \`RoleEntity\` + seed + guard comparison.`);
+    l.push(`3. Keep everything else (JWT, families, guards, decorators) as-is.`);
 
     l.push(``, `## Auth Exceptions (\`src/app/auth/exceptions/\`)`);
     l.push(`- \`InvalidCredentialsException\` → 401 \`INVALID_CREDENTIALS\``);
-    l.push(`- \`InvalidRefreshTokenException\` → 401 \`INVALID_REFRESH_TOKEN\``);
+    l.push(`- \`InvalidRefreshTokenException\` → 401 \`INVALID_REFRESH_TOKEN\`; \`RefreshTokenReusedException\` → 401 \`REFRESH_TOKEN_REUSED\``);
     l.push(`- \`InvalidTokenException\` → 401 \`INVALID_TOKEN\` (thrown by JwtAuthGuard)`);
-    l.push(`- \`InsufficientPermissionsException\` → 403 \`INSUFFICIENT_PERMISSIONS\` (thrown by RolesGuard)`);
+    l.push(`- \`InsufficientPermissionsException\` → 403 \`INSUFFICIENT_PERMISSIONS\` (RolesGuard); \`EmailNotVerifiedException\` → 403 \`EMAIL_NOT_VERIFIED\``);
+    l.push(`- \`InvalidEmailCodeException\`, \`InvalidCurrentPasswordException\`, and the two-factor ones (\`InvalidTwoFactorCode\`, \`InvalidTwoFactorChallenge\`, state errors)`);
 
     return l.join('\n') + '\n';
 }

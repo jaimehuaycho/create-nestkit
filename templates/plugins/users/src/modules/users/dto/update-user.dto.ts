@@ -1,25 +1,20 @@
+import { RoleEnum } from '../../../shared/enums/index.js';
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsEmail, IsInt, IsOptional, IsPositive, IsString, MaxLength, MinLength } from 'class-validator';
-import { MaxBytes } from '../../../shared/decorators/index.js';
-import { PASSWORD_MAX_BYTES } from '../../../shared/security/password.util.js';
+import { IsEmail, IsOptional, IsString, Matches, MaxLength } from 'class-validator';
+import { NormalizeEmail } from '../../../shared/decorators/index.js';
 
 export class UpdateUserDto {
     @ApiPropertyOptional({ example: 'new@email.com', maxLength: 100 })
     @IsOptional()
+    @NormalizeEmail()
     @IsEmail({}, { message: 'Email must be a valid email address.' })
     @MaxLength(100)
     email?: string;
 
-    @ApiPropertyOptional({ example: 'newpassword123', minLength: 6 })
+    // Changing a role needs permission to give it (UserAccessService.assertCanAssignRole): a user can edit their own email, never their role. Passwords are not edited here: POST /auth/password/change.
+    @ApiPropertyOptional({ example: RoleEnum.ADMIN, description: 'Name of an existing role. Requires permission to assign it.' })
     @IsOptional()
     @IsString()
-    @MinLength(6, { message: 'Password must be at least 6 characters.' })
-    @MaxBytes(PASSWORD_MAX_BYTES, { message: `Password must not exceed ${PASSWORD_MAX_BYTES} bytes.` })
-    password?: string;
-
-    @ApiPropertyOptional({ example: 2, description: 'Role ID (must exist in the roles table)' })
-    @IsOptional()
-    @IsInt({ message: 'Role ID must be an integer.' })
-    @IsPositive({ message: 'Role ID must be a positive number.' })
-    roleId?: number;
+    @Matches(/^[a-z][a-z0-9_-]*$/, { message: `Role must be a role name such as "${RoleEnum.USER}" or "${RoleEnum.ADMIN}".` })
+    role?: string;
 }

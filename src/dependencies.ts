@@ -29,6 +29,7 @@ export const DEPENDENCY_RANGES: Record<string, string> = {
 
     // auth
     passport:              '^0.7',
+    otpauth:               '^9',
     'passport-jwt':        '^4',
     '@types/passport-jwt': '^4',
     bcrypt:                '^6',

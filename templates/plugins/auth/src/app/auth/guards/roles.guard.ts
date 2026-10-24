@@ -1,30 +1,22 @@
-import { Injectable, CanActivate, ExecutionContext } from '@nestjs/common';
+import { CanActivate, ExecutionContext, Injectable } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
+import { InsufficientPermissionsException, InvalidTokenException } from '../exceptions/index.js';
 import { ROLES_KEY } from '../decorators/roles.decorator.js';
-import type { AuthUser } from '../strategies/jwt.strategy.js';
-import { InsufficientPermissionsException } from '../exceptions/index.js';
+import { hasAnyRole } from '../utils/roles.util.js';
 
-// Role hierarchy: lower number = more privileges. (1=root, 2=admin, 3=user)
-// RolesGuard checks: user.roleId <= requiredRole
+// Registered as APP_GUARD in AuthModule, after JwtAuthGuard (which has already put the user on the request).
 @Injectable()
 export class RolesGuard implements CanActivate {
     constructor(private readonly reflector: Reflector) {}
 
     canActivate(context: ExecutionContext): boolean {
-        const requiredRol = this.reflector.getAllAndOverride<number>(ROLES_KEY, [
-            context.getHandler(),
-            context.getClass(),
-        ]);
+        const roles = this.reflector.getAllAndOverride<string[] | undefined>(ROLES_KEY, [context.getHandler(), context.getClass()]);
+        if (!roles?.length) return true;
 
-        if (requiredRol === undefined) return true;
+        const user = context.switchToHttp().getRequest().user ?? null;
+        if (hasAnyRole(user, ...roles)) return true;
 
-        const { user }: { user: AuthUser } = context.switchToHttp().getRequest();
-
-        // @Public() routes bypass JwtAuthGuard so user may be undefined here.
-        if (!user) return true;
-
-        if (user.roleId <= requiredRol) return true;
-
-        throw new InsufficientPermissionsException();
+        // Nobody signed in (a @Public route that also asks for roles): 401, signing in could change the answer. Otherwise 403.
+        throw user ? new InsufficientPermissionsException() : new InvalidTokenException();
     }
 }

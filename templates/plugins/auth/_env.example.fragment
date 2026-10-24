@@ -1,7 +1,11 @@
+
 # Auth (JWT)
 # Generate secrets with: node -e "console.log(require('crypto').randomBytes(64).toString('hex'))"
-ACTIVE_JWT=true
-JWT_SECRET=your_jwt_secret_here
+JWT_SECRET=your_jwt_secret_at_least_32_characters_long
 JWT_TIME_EXPIRE=15m
-JWT_REFRESH_SECRET=your_refresh_secret_here
-JWT_REFRESH_TIME_EXPIRE=7d
+REFRESH_TOKEN_TTL=7d
+REFRESH_FAMILY_TTL=30d
+
+# Two-factor authentication (TOTP): 32-byte key, 64 hex characters. It encrypts the TOTP secrets in the database: if you lose it,
+# users must set 2FA up again. Generate with: openssl rand -hex 32
+TWO_FACTOR_ENCRYPTION_KEY=generate_with_openssl_rand_hex_32_64_hex_characters_here_please

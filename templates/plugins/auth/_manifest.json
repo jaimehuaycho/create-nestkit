@@ -1,23 +1,37 @@
 {
   "id": "auth",
-  "label": "Authentication (JWT + refresh token rotation)",
-  "requires": ["database", "users", "roles"],
+  "label": "Authentication (JWT, refresh token families, e-mail codes, TOTP 2FA)",
+  "requires": [
+    "database",
+    "users",
+    "roles"
+  ],
   "appModule": {
     "imports": [
       "import { AuthModule } from './app/auth/auth.module.js';"
     ],
-    "modules": ["AuthModule"]
+    "modules": [
+      "AuthModule"
+    ]
   },
   "envVars": [
-    "ACTIVE_JWT",
     "JWT_SECRET",
     "JWT_TIME_EXPIRE",
-    "JWT_REFRESH_SECRET",
-    "JWT_REFRESH_TIME_EXPIRE"
+    "REFRESH_TOKEN_TTL",
+    "REFRESH_FAMILY_TTL",
+    "TWO_FACTOR_ENCRYPTION_KEY"
   ],
   "dependencies": {
-    "prod": ["@nestjs/jwt", "@nestjs/passport", "passport", "passport-jwt"],
-    "dev": ["@types/passport-jwt"]
+    "prod": [
+      "@nestjs/jwt",
+      "@nestjs/passport",
+      "passport",
+      "passport-jwt",
+      "otpauth"
+    ],
+    "dev": [
+      "@types/passport-jwt"
+    ]
   },
   "scripts": {}
 }

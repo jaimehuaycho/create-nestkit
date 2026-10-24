@@ -11,6 +11,10 @@ export class UserDto {
     @ApiProperty({ example: 'user@email.com' })
     email!: string;
 
+    @DtoField()
+    @ApiProperty({ example: null, nullable: true, type: Date, description: 'When the email address was confirmed. null until then.' })
+    emailVerifiedAt!: Date | null;
+
     @DtoRelation(() => RoleDto)
     @ApiProperty({ type: () => RoleDto })
     role!: RoleDto;

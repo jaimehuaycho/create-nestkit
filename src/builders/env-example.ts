@@ -32,9 +32,9 @@ DB_PASSWORD=your_password
 DB_NAME=your_database
 DB_LOGS=false
 
-# Seed
+# Seed. Leave SEED_ROOT_PASSWORD empty to generate a random password, printed once when you run the seed.
 SEED_ROOT_EMAIL=root@app.com
-SEED_ROOT_PASSWORD=Root1234!
+SEED_ROOT_PASSWORD=
 `,
     mysql: `
 # Database (MySQL)
@@ -46,9 +46,9 @@ DB_PASSWORD=your_password
 DB_NAME=your_database
 DB_LOGS=false
 
-# Seed
+# Seed. Leave SEED_ROOT_PASSWORD empty to generate a random password, printed once when you run the seed.
 SEED_ROOT_EMAIL=root@app.com
-SEED_ROOT_PASSWORD=Root1234!
+SEED_ROOT_PASSWORD=
 `,
     mariadb: `
 # Database (MariaDB)
@@ -60,9 +60,9 @@ DB_PASSWORD=your_password
 DB_NAME=your_database
 DB_LOGS=false
 
-# Seed
+# Seed. Leave SEED_ROOT_PASSWORD empty to generate a random password, printed once when you run the seed.
 SEED_ROOT_EMAIL=root@app.com
-SEED_ROOT_PASSWORD=Root1234!
+SEED_ROOT_PASSWORD=
 `,
     mssql: `
 # Database (SQL Server)
@@ -74,9 +74,9 @@ DB_PASSWORD=your_password
 DB_NAME=your_database
 DB_LOGS=false
 
-# Seed
+# Seed. Leave SEED_ROOT_PASSWORD empty to generate a random password, printed once when you run the seed.
 SEED_ROOT_EMAIL=root@app.com
-SEED_ROOT_PASSWORD=Root1234!
+SEED_ROOT_PASSWORD=
 `,
 };
 

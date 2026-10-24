@@ -8,7 +8,6 @@ import { Manifest } from '../generator';
 export function buildMainTs(manifests: Manifest[], dbDriver: string): string {
     const ids       = new Set(manifests.map(m => m.id));
     const hasDb      = ids.has('database');
-    const hasAuth    = ids.has('auth');
     const hasObserve = ids.has('observe');
     const isPostgres = hasDb && dbDriver === 'postgres';
 
@@ -29,7 +28,6 @@ export function buildMainTs(manifests: Manifest[], dbDriver: string): string {
     lines.push(`import { setupSwagger } from './config/helpers/swagger.js';`);
     lines.push(`import { logServerStatus } from './config/helpers/logger.js';`);
     lines.push(`import { HttpExceptionFilter } from './shared/filters/index.js';`);
-    if (hasAuth)    lines.push(`import { JwtConfig } from './app/auth/config/jwt.config.js';`);
     if (hasDb)      lines.push(`import { DatabaseConfig } from './database/config/database.config.js';`);
     if (hasObserve) lines.push(`import { ObserveInstrument } from './plugins/observe/observe.instrument.js';`);
 
@@ -82,7 +80,6 @@ export function buildMainTs(manifests: Manifest[], dbDriver: string): string {
     lines.push(``);
     lines.push(`    await app.listen(cfg.port);`);
     lines.push(``);
-    if (hasAuth) lines.push(`    const jwtCfg = app.get(JwtConfig,      { strict: false });`);
     if (hasDb)   lines.push(`    const dbCfg  = app.get(DatabaseConfig, { strict: false });`);
     lines.push(``);
     lines.push(`    logServerStatus(cfg, APP_NAME, {`);
@@ -90,7 +87,6 @@ export function buildMainTs(manifests: Manifest[], dbDriver: string): string {
     lines.push(`        docsPath:  'api/docs',`);
     lines.push(`        cors:      cfg.corsOrigins,`);
     lines.push(`        logLevels: logger,`);
-    if (hasAuth) lines.push(`        jwtActive: jwtCfg.isActive,`);
     if (hasDb) {
         lines.push(`        dbLogs:    dbCfg.logging,`);
         lines.push(`        database:  \`\${dbCfg.host}:\${dbCfg.port}/\${dbCfg.database}\`,`);

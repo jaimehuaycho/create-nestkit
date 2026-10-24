@@ -8,9 +8,12 @@ export class AuthResponseDto {
     })
     accessToken: string;
 
+    @ApiProperty({ example: 900, description: 'Seconds until the access token expires.' })
+    expiresIn: number;
+
     @ApiProperty({
-        example:     'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
-        description: 'Long-lived refresh token (JWT_REFRESH_TIME_EXPIRE, default 7 days). Use only at POST /auth/refresh. Store securely (httpOnly cookie or secure storage).',
+        example:     'q3Zx0e9y5pQ2m8Jt1VbN7aLkR4sWcU6hDfGiOeXnYzA',
+        description: 'Opaque, single-use refresh token (REFRESH_TOKEN_TTL, default 7 days, within REFRESH_FAMILY_TTL). Use only at POST /auth/refresh. Store securely.',
     })
     refreshToken: string;
 

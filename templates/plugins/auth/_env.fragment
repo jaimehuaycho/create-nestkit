@@ -1,7 +1,11 @@
     // -- Auth (JWT) -----------------------------------------------------------
-    ACTIVE_JWT:              Joi.boolean().default(true),
-    JWT_SECRET:              Joi.string().required(),
+    // HS256 needs a key of at least 256 bits: 32 characters minimum (generate one, see .env.example).
+    JWT_SECRET:              Joi.string().min(32).required(),
     JWT_TIME_EXPIRE:         Joi.string().default('15m'),
-    JWT_REFRESH_SECRET:      Joi.string().required(),
-    JWT_REFRESH_TIME_EXPIRE: Joi.string().default('7d'),
+    REFRESH_TOKEN_TTL:       Joi.string().default('7d'),
+    REFRESH_FAMILY_TTL:      Joi.string().default('30d'),
+
+    // -- Two-factor (TOTP) ------------------------------------------------------
+    // 32 bytes as 64 hex characters: encrypts the TOTP secrets in the database. Generate with: openssl rand -hex 32
+    TWO_FACTOR_ENCRYPTION_KEY: Joi.string().hex().length(64).required(),
 

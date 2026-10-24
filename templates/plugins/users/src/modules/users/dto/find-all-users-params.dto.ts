@@ -1,13 +1,11 @@
+import { RoleEnum } from '../../../shared/enums/index.js';
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { Type } from 'class-transformer';
-import { IsInt, IsOptional, IsPositive } from 'class-validator';
+import { IsOptional, IsString } from 'class-validator';
 import { PaginationParamsDto } from '../../../shared/dto/index.js';
 
 export class FindAllUsersParamsDto extends PaginationParamsDto {
-    @ApiPropertyOptional({ example: 2, description: 'Filtrar por ID de rol' })
+    @ApiPropertyOptional({ example: RoleEnum.ADMIN, description: 'Filter by role name' })
     @IsOptional()
-    @Type(() => Number)
-    @IsInt()
-    @IsPositive()
-    roleId?: number;
+    @IsString()
+    role?: string;
 }

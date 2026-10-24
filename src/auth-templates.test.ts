@@ -1,7 +1,10 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { describe, it, expect } from 'vitest';
-import { hashRefreshToken, matchesRefreshToken } from '../templates/plugins/auth/src/app/auth/utils/refresh-token.util';
+import { generateRefreshToken, hashRefreshToken } from '../templates/plugins/auth/src/app/auth/utils/token.util';
+import { decryptSecret, encryptSecret } from '../templates/plugins/auth/src/app/auth/utils/secret-box.util';
+import { hasAnyRole } from '../templates/plugins/auth/src/app/auth/utils/roles.util';
+import { parseDuration } from '../templates/core/src/shared/utils/duration.util';
 import { byteLength } from '../templates/core/src/shared/utils/bytes.util';
 import { PASSWORD_HASHERS } from './builders/password-hasher';
 
@@ -9,36 +12,75 @@ import { PASSWORD_HASHERS } from './builders/password-hasher';
 const TEMPLATES = path.join(__dirname, '..', 'templates');
 const read = (rel: string) => fs.readFileSync(path.join(TEMPLATES, rel), 'utf-8');
 
-// A realistic refresh token: header.payload.signature. Two tokens of the same user share the first ~72 bytes.
-const header  = Buffer.from('{"alg":"HS256","typ":"JWT"}').toString('base64url');
-const token = (iat: number, jti: string) =>
-    `${header}.${Buffer.from(JSON.stringify({ sub: 1, email: 'root@app.com', roleId: 1, iat, exp: iat + 604800, jti })).toString('base64url')}.sig${iat}${jti}`;
+function sourceFiles(dir: string): string[] {
+    return fs.readdirSync(dir, { withFileTypes: true }).flatMap(e =>
+        e.isDirectory() ? sourceFiles(path.join(dir, e.name)) : e.name.endsWith('.ts') ? [path.join(dir, e.name)] : []);
+}
 
-describe('refresh token digest', () => {
-    it('matches the exact token that was stored', () => {
-        const t = token(1700000000, 'a');
-        expect(matchesRefreshToken(t, hashRefreshToken(t))).toBe(true);
+describe('refresh tokens', () => {
+    it('are opaque, 256 random bits, and never repeat', () => {
+        const a = generateRefreshToken();
+        expect(a).toMatch(/^[A-Za-z0-9_-]{43}$/);
+        expect(generateRefreshToken()).not.toBe(a);
     });
 
-    it('does NOT match a different token of the same user (the bcrypt 72-byte truncation bug)', () => {
-        const old = token(1700000000, 'a');
-        const next = token(1700000001, 'b');
-        // Prove the premise of the bug: both tokens agree on their first 72 bytes.
-        expect(next.slice(0, 72)).toBe(old.slice(0, 72));
-        expect(next).not.toBe(old);
-
-        expect(matchesRefreshToken(next, hashRefreshToken(old))).toBe(false);
-    });
-
-    it('is a 64-char hex digest (fits the refresh_token column) and is deterministic', () => {
-        const t = token(1700000000, 'a');
+    it('are stored as a SHA-256 digest: 64 hex characters, deterministic, different per token', () => {
+        const t = generateRefreshToken();
         expect(hashRefreshToken(t)).toMatch(/^[0-9a-f]{64}$/);
         expect(hashRefreshToken(t)).toBe(hashRefreshToken(t));
+        expect(hashRefreshToken(t)).not.toBe(hashRefreshToken(generateRefreshToken()));
+    });
+});
+
+describe('secret box (TOTP secrets at rest)', () => {
+    const key = Buffer.alloc(32, 7);
+
+    it('round-trips a secret and never stores it in the clear', () => {
+        const boxed = encryptSecret('JBSWY3DPEHPK3PXP', key);
+        expect(boxed).not.toContain('JBSWY3DPEHPK3PXP');
+        expect(decryptSecret(boxed, key)).toBe('JBSWY3DPEHPK3PXP');
     });
 
-    it('rejects a malformed or empty stored value instead of throwing', () => {
-        expect(matchesRefreshToken(token(1, 'a'), '')).toBe(false);
-        expect(matchesRefreshToken(token(1, 'a'), 'not-a-digest')).toBe(false);
+    it('uses a fresh IV each time', () => {
+        expect(encryptSecret('x', key)).not.toBe(encryptSecret('x', key));
+    });
+
+    it('refuses a tampered value, another key, or an unknown format', () => {
+        const boxed = encryptSecret('secret', key);
+        const [v, iv, tag, data] = boxed.split('.');
+        expect(() => decryptSecret([v, iv, tag, Buffer.from('tampered').toString('base64url')].join('.'), key)).toThrow();
+        expect(() => decryptSecret(boxed, Buffer.alloc(32, 8))).toThrow();
+        expect(() => decryptSecret(`v9.${iv}.${tag}.${data}`, key)).toThrow(/Unsupported/);
+        expect(() => decryptSecret('garbage', key)).toThrow();
+    });
+});
+
+describe('role check', () => {
+    const user = (...roles: string[]) => ({ id: 1, roles });
+
+    it('allows a user holding ANY of the listed roles, and nobody else', () => {
+        expect(hasAnyRole(user('admin'), 'root', 'admin')).toBe(true);
+        expect(hasAnyRole(user('user'), 'root', 'admin')).toBe(false);
+        expect(hasAnyRole(user(), 'root')).toBe(false);
+        expect(hasAnyRole(null, 'root')).toBe(false);
+    });
+
+    it('has no hierarchy: a higher role does not imply a lower one', () => {
+        expect(hasAnyRole(user('root'), 'user')).toBe(false);
+    });
+});
+
+describe('parseDuration', () => {
+    it('reads the units the env variables use', () => {
+        expect(parseDuration('30s')).toBe(30_000);
+        expect(parseDuration('15m')).toBe(900_000);
+        expect(parseDuration('7d')).toBe(604_800_000);
+        expect(parseDuration(1500)).toBe(1500);
+    });
+
+    it('fails on a typo instead of guessing, so a bad .env stops at startup', () => {
+        expect(() => parseDuration('15 minutes')).toThrow(/Invalid duration/);
+        expect(() => parseDuration('')).toThrow();
     });
 });
 
@@ -58,29 +100,30 @@ describe('byteLength / password limit', () => {
 });
 
 describe('auth plugin wiring', () => {
-    const authService = read('plugins/auth/src/app/auth/services/auth.service.ts');
-
-    it('no longer hashes refresh tokens with bcrypt', () => {
-        expect(authService).not.toMatch(/hashPassword\(\s*refreshToken/);
-        expect(authService).not.toMatch(/comparePassword\(\s*dto\.refreshToken/);
-        expect(authService).toContain('hashRefreshToken(refreshToken)');
-        expect(authService).toContain('matchesRefreshToken(dto.refreshToken');
-    });
-
-    it('gives every refresh token a unique jti', () => {
-        expect(authService).toMatch(/jwtid:\s*randomUUID\(\)/);
+    it('public sign-up never takes a role (anyone could otherwise register as root)', () => {
+        const dto = read('plugins/auth/src/app/auth/dto/register.dto.ts').split('\n').filter(line => !line.trim().startsWith('//')).join('\n');
+        expect(dto).not.toMatch(/\brole(Id|Name|s)?\b\s*[?:]/);
+        expect(dto).not.toMatch(/@Is(Int|Enum)/);
     });
 
     it.each([
         'plugins/auth/src/app/auth/dto/login.dto.ts',
         'plugins/auth/src/app/auth/dto/register.dto.ts',
         'plugins/users/src/modules/users/dto/create-user.dto.ts',
-        'plugins/users/src/modules/users/dto/update-user.dto.ts',
     ])('%s limits the password in BYTES through the hasher\'s PASSWORD_MAX_BYTES, not 255 characters', (file) => {
         const dto = read(file);
         expect(dto).toContain('@MaxBytes(PASSWORD_MAX_BYTES');
         expect(dto).toContain('shared/security/password.util.js');
         expect(dto).not.toContain('BCRYPT');
         expect(dto).not.toMatch(/@MaxLength\(255\)\s*\n\s*password/);
+    });
+
+    it('a role is never a string literal in generated code: RoleEnum is the only place it is written', () => {
+        for (const file of sourceFiles(path.join(TEMPLATES, 'core')).concat(sourceFiles(path.join(TEMPLATES, 'plugins')))) {
+            if (file.endsWith(path.join('shared', 'enums', 'role.enum.ts'))) continue;
+            const hits = fs.readFileSync(file, 'utf-8').split('\n')
+                .filter(line => !line.trim().startsWith('//') && !line.trim().startsWith('*') && /['"](root|admin)['"]/.test(line));
+            expect(hits, path.relative(TEMPLATES, file)).toEqual([]);
+        }
     });
 });

@@ -1,9 +1,12 @@
 // dotenv must load first — this script runs outside NestJS.
 import 'dotenv/config';
 
+import { randomBytes } from 'node:crypto';
 import { AppDataSource } from '../config/data-source.js';
 import { User } from '../../modules/users/entities/user.entity.js';
 import { Role } from '../../modules/roles/entities/role.entity.js';
+import { BUILT_IN_ROLES } from '../../modules/roles/roles.constants.js';
+import { RoleEnum } from '../../shared/enums/index.js';
 import { hashPassword } from '../../shared/security/password.util.js';
 
 const GREEN  = '\x1b[32m';
@@ -13,9 +16,14 @@ const CYAN   = '\x1b[36m';
 const RESET  = '\x1b[0m';
 const BOLD   = '\x1b[1m';
 
-// Insertion order fixes the auto-generated ids to 1/2/3, matching the role
-// hierarchy documented in CLAUDE.md (root=1, admin=2, user=3).
-const ROLE_NAMES = ['root', 'admin', 'user'] as const;
+// Roles are identified by NAME, not by a number, and there is no hierarchy: what each role may do is listed explicitly in the
+// @Roles(...) decorators on the routes. Add your own roles to RoleEnum, seed them here and list them in the routes that allow them.
+const ROLE_NAMES = BUILT_IN_ROLES;
+const ROLE_DESCRIPTIONS: Record<RoleEnum, string> = {
+    [RoleEnum.ROOT]:  'Full control, including roles',
+    [RoleEnum.ADMIN]: 'Manages users',
+    [RoleEnum.USER]:  'Regular account',
+};
 
 /**
  * Inserts the root/admin/user roles if they don't already exist.
@@ -28,7 +36,7 @@ async function seedRoles(): Promise<void> {
         const existing = await repo.findOne({ where: { name } });
         if (existing) continue;
 
-        const role = repo.create({ name });
+        const role = repo.create({ name, description: ROLE_DESCRIPTIONS[name] });
         await repo.save(role);
         console.log(`  ${GREEN}✔  Role created${RESET} → ${name}`);
     }
@@ -41,7 +49,9 @@ async function seedRoles(): Promise<void> {
  */
 async function seedRootUser(): Promise<void> {
     const email    = process.env.SEED_ROOT_EMAIL    ?? 'root@app.com';
-    const password = process.env.SEED_ROOT_PASSWORD ?? 'Root1234!';
+    // No default password: a known one is a back door. Without SEED_ROOT_PASSWORD a random one is generated and printed ONCE.
+    const provided = process.env.SEED_ROOT_PASSWORD?.trim();
+    const password = provided || randomBytes(18).toString('base64url');
 
     const repo = AppDataSource.getRepository(User);
 
@@ -54,12 +64,12 @@ async function seedRootUser(): Promise<void> {
 
     const hashed = await hashPassword(password);
 
-    // roleId = 1 is the root role created by the initial migration.
-    const user = repo.create({ email, password: hashed, roleId: 1 });
+    // Roles are identified by name: the root role is created by seedRoles() above.
+    const user = repo.create({ email, password: hashed, roleName: RoleEnum.ROOT, emailVerifiedAt: new Date() });
     await repo.save(user);
 
     console.log(`  ${GREEN}✔  Root user created${RESET} → ${BOLD}${email}${RESET}`);
-    console.log(`  ${YELLOW}⚠  Change the root password in production.${RESET}`);
+    if (!provided) console.log(`  ${YELLOW}⚠  Generated password (shown only now): ${BOLD}${password}${RESET}`);
 }
 
 async function seed(): Promise<void> {

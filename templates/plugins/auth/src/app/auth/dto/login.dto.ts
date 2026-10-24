@@ -1,10 +1,11 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsEmail, IsNotEmpty, IsString } from 'class-validator';
-import { MaxBytes } from '../../../shared/decorators/index.js';
+import { MaxBytes, NormalizeEmail } from '../../../shared/decorators/index.js';
 import { PASSWORD_MAX_BYTES } from '../../../shared/security/password.util.js';
 
 export class LoginDto {
     @ApiProperty({ example: 'user@email.com' })
+    @NormalizeEmail()
     @IsEmail({}, { message: 'Email must be a valid email address.' })
     email: string;
 

@@ -36,7 +36,7 @@ export function buildReadme(
     l.push(``, `## Stack`);
     l.push(`- **NestJS ${NEST.major}** + TypeScript`);
     if (hasDb)   l.push(`- **TypeORM** + ${DB_LABELS[dbDriver] ?? dbDriver}`);
-    if (hasAuth) l.push(`- **JWT auth** with refresh token rotation + role-based guards, passwords hashed with **${hasher?.label ?? 'bcrypt'}**`);
+    if (hasAuth) l.push(`- **JWT auth** with refresh-token families, e-mail codes, optional TOTP two-factor and per-route roles, passwords hashed with **${hasher?.label ?? 'bcrypt'}**`);
     if (hasMail) l.push(`- **Mailer** — SMTP or HTTP API (Resend-compatible), Port & Adapter pattern`);
     if (hasSock) l.push(`- **WebSockets** — Socket.io`);
     if (hasPdf)  l.push(`- **PDF generation** — Puppeteer`);

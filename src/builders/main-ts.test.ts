@@ -29,10 +29,10 @@ describe('buildMainTs', () => {
         expect(result).toContain('bootstrap();');
     });
 
-    it('includes the JwtConfig import and jwtActive banner field only when auth is active', () => {
-        const result = buildMainTs([fakeManifest('auth')], 'postgres');
-        expect(result).toContain(`import { JwtConfig } from './app/auth/config/jwt.config.js';`);
-        expect(result).toContain('jwtActive: jwtCfg.isActive,');
+    it('has no switch to bypass authentication: nothing about JWT is read at startup', () => {
+        const result = buildMainTs([fakeManifest('auth'), fakeManifest('database')], 'postgres');
+        expect(result).not.toContain('JwtConfig');
+        expect(result).not.toContain('jwtActive');
     });
 
     it('includes the DatabaseConfig import and db banner fields only when database is active', () => {

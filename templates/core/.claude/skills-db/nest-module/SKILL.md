@@ -65,7 +65,8 @@ src/modules/{name}s/
 - JSDoc error dictionary at class level
 - `@ApiOperation` with summary + description on every endpoint
 - Variadic error decorators: `@ApiNotFound(err1)`, `@ApiConflict(err1)`, `@ApiUnauthorized(err1)`
-- Use `@AdminUp()` / `@RootOnly()` / `@UserUp()` — never raw `@Roles(n)`
+- With the Auth plugin: restrict a route with `@Roles(RoleEnum.ROOT, RoleEnum.ADMIN)` (explicit list, no hierarchy; no `@Roles()` = any signed-in user).
+  Never write a role as a string literal: use `RoleEnum` from `shared/enums`. Rules that depend on the record go in a service, like `UserAccessService`.
 
 ### Exceptions
 - `XNotFoundException extends NotFoundException` → `X_NOT_FOUND`

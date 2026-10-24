@@ -13,16 +13,15 @@ export class User extends BaseEntitySoftDelete {
     @Column({ name: 'password', type: 'varchar', length: 255 })
     password: string;
 
-    // Stores the SHA-256 digest (hex, 64 chars) of the active refresh token.
-    // null = no active session (never logged in, logged out, or token revoked).
-    @Column({ name: 'refresh_token', type: 'varchar', length: 500, nullable: true })
-    refreshToken: string | null;
+    // When the address was confirmed through the e-mail link (null = not yet). Changing the email resets it.
+    @Column({ name: 'email_verified_at', type: Date, nullable: true })
+    emailVerifiedAt: Date | null;
 
-    // FK column stored in DB — also used in JWT payload and RolesGuard (1=root, 2=admin, 3=user).
-    @Column({ name: 'role_id', type: 'int' })
-    roleId: number;
+    // The role's NAME (foreign key to roles.name). Refresh tokens live in their own table (refresh_tokens).
+    @Column({ name: 'role', type: 'varchar', length: 50 })
+    roleName: string;
 
     @ManyToOne(() => Role, (role) => role.users)
-    @JoinColumn({ name: 'role_id' })
+    @JoinColumn({ name: 'role', referencedColumnName: 'name' })
     role: Role;
 }

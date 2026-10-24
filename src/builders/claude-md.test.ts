@@ -100,7 +100,7 @@ describe('generated CLAUDE.md content', () => {
     });
 
     it('describes the seed according to what it really does', () => {
-        expect(generate(['auth']).get('.claude/CLAUDE.md')).toMatch(/seed .*role hierarchy/);
+        expect(generate(['auth']).get('.claude/CLAUDE.md')).toMatch(/seed .*roles \(root\/admin\/user\)/);
         expect(generate(['database']).get('.claude/CLAUDE.md')).toMatch(/seed .*empty seed script/);
     });
 

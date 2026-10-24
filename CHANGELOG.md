@@ -29,6 +29,20 @@ All notable changes to this project are documented here. The format follows
   TypeScript for development moved to 6, the peer range of `@nestjs/schematics` 12.
 
 ### Security
+- **The Auth plugin was redesigned; the previous one had critical flaws (present in 1.0.0 to 1.2.1, now deprecated on npm).**
+  Anyone could register as root (`POST /auth/register` accepted `roleId`), and any signed-in user could promote anyone or
+  delete the root through `PUT`/`DELETE /users/:id`. Now (BREAKING for projects generated with Auth):
+  - Roles are identified by **name** (`RoleEnum`: root, admin, user), listed explicitly per route with `@Roles(...)`; no numeric
+    hierarchy, no `@RootOnly/@AdminUp/@UserUp`. Public sign-up never takes a role; only root gives any role, an admin only `user`,
+    an admin can never touch a root, and nobody deletes their own account.
+  - **Refresh tokens are opaque and live in families** (one per device): single use, absolute family lifetime, reuse revokes the
+    family, logout this device or all. `JWT_REFRESH_SECRET` and `JWT_REFRESH_TIME_EXPIRE` are gone (`REFRESH_TOKEN_TTL`, `REFRESH_FAMILY_TTL`).
+  - Access tokens carry `sub`, `roles`, `email_verified`, `amr`, `iss`, `aud`, `jti`; `JWT_SECRET` must be at least 32 characters.
+    `ACTIVE_JWT` (the switch that disabled authentication) was removed.
+  - E-mail verification and password reset with one-time 6-digit **codes** (a simulated mailer logs them until you plug in a real one),
+    optional **TOTP two-factor** with encrypted secrets (`TWO_FACTOR_ENCRYPTION_KEY`) and recovery codes, change-password that needs
+    the current one, minimum password length 12, timing-safe login, hashes upgraded on login (`needsRehash`).
+  - The seed no longer has a default root password: leave `SEED_ROOT_PASSWORD` empty and a random one is printed once.
 - **Every generated project now ships baseline hardening, with or without Auth:** security headers through Nest's built-in `app.useSecurityHeaders()` (Nest 12.1+; the
   same defaults as Helmet 8, no extra package; CSP off only while Swagger UI is on, no `X-Powered-By`); rate limiting for the whole API (`RateLimitModule`, global `ThrottlerGuard`,
   `@StrictRateLimit()` for sign-in-like routes) configured with `THROTTLE_TTL`, `THROTTLE_LIMIT`, `THROTTLE_STRICT_TTL`,

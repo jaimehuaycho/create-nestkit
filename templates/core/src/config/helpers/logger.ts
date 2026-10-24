@@ -44,7 +44,6 @@ export interface ServerBannerOptions {
     cors:       string;
     logLevels:  LogLevel[];
     /** Defined only when the auth plugin is active. */
-    jwtActive?: boolean;
     /** Defined only when the database plugin is active. */
     dbLogs?:    boolean;
     /** Defined only when the database plugin is active. */
@@ -76,9 +75,6 @@ export function logServerStatus(cfg: AppConfig, appName: string, opts: ServerBan
         ['Swagger', opts.swagger
             ? `${OK} ${C.cyan}${baseUrl}/${opts.docsPath}${C.reset}`
             : `${FAIL} ${C.dim}Disabled${C.reset}`],
-        ...(opts.jwtActive !== undefined ? [['JWT Auth', opts.jwtActive
-            ? `${OK} ${C.green}Active${C.reset}`
-            : `${WARN} ${C.yellow}Bypassed${C.reset} ${C.dim}(ACTIVE_JWT=false)${C.reset}`] as [string, string]] : []),
         ...(opts.dbLogs !== undefined ? [['DB Logs', opts.dbLogs
             ? `${OK} ${C.green}Enabled${C.reset}`
             : `${FAIL} ${C.dim}Disabled${C.reset}`] as [string, string]] : []),
