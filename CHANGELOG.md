@@ -24,6 +24,8 @@ All notable changes to this project are documented here. The format follows
   exactly) through the Angular DevKit engine, lays our files on top in the same in-memory tree and writes the result
   once, so a failure while generating leaves nothing half written. The output is byte-identical to the previous
   method. Generation no longer queries the npm registry for the CLI version and no longer depends on the npx cache.
+  The ESM/CJS question (Nest's own wording, ESM by default) is now asked by create-nestkit itself, once, instead of by a
+  second prompt from the Nest CLI.
   TypeScript for development moved to 6, the peer range of `@nestjs/schematics` 12.
 
 ### Added

@@ -16,6 +16,17 @@ async function main() {
     });
     if (p.isCancel(projectName)) { p.cancel('Cancelled.'); process.exit(0); }
 
+    // The same question and wording as `nest new`, asked here so the scaffold step never prompts on its own.
+    const moduleSystem = await p.select({
+        message:      'Which module system would you like to use?',
+        initialValue: 'esm',
+        options: [
+            { value: 'esm', label: 'ESM (ES Modules) [ with vitest ]' },
+            { value: 'cjs', label: 'CJS (CommonJS) [ with jest ]' },
+        ],
+    });
+    if (p.isCancel(moduleSystem)) { p.cancel('Cancelled.'); process.exit(0); }
+
     const pluginOptions = [
         { value: 'database', label: 'Database',      hint: 'TypeORM' },
         { value: 'auth',     label: 'Auth',           hint: 'JWT + refresh token rotation  (requires database)' },
@@ -76,6 +87,7 @@ async function main() {
             dbDriver,
             targetDir,
             passwordHasher,
+            moduleSystem: moduleSystem as 'esm' | 'cjs',
         });
     } catch (err) {
         p.log.error(String(err));
