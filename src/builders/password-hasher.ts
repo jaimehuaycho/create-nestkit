@@ -87,9 +87,12 @@ export function getPasswordHasher(id: string | undefined): PasswordHasher {
     return PASSWORD_HASHERS[(id as PasswordHasherId) ?? DEFAULT_PASSWORD_HASHER] ?? PASSWORD_HASHERS[DEFAULT_PASSWORD_HASHER];
 }
 
-// Writes src/shared/security/password.util.ts for the chosen hasher.
+// Where the chosen hasher's module lives in a generated project.
+export const PASSWORD_UTIL_PATH = 'src/shared/security/password.util.ts';
+
+// Writes PASSWORD_UTIL_PATH for the chosen hasher.
 export function writePasswordUtil(targetDir: string, hasher: PasswordHasher): void {
-    const file = path.join(targetDir, 'src', 'shared', 'security', 'password.util.ts');
+    const file = path.join(targetDir, ...PASSWORD_UTIL_PATH.split('/'));
     fs.mkdirSync(path.dirname(file), { recursive: true });
     fs.writeFileSync(file, hasher.source);
 }

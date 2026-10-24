@@ -6,12 +6,10 @@ import { Manifest } from '../generator';
 // dist/ unless `compilerOptions.assets` in nest-cli.json says so (official Nest CLI docs: assets must live under src/,
 // patterns are relative to it). Each plugin declares the globs it needs in its manifest (`nestAssets`), so e.g. the
 // mailer's `.hbs` templates exist at dist/plugins/mailer/templates, where its SMTP module reads them.
-export function addNestAssets(targetDir: string, manifests: Manifest[]): void {
+// Returns false when no plugin declares assets (nothing to change).
+export function applyNestAssets(cli: any, manifests: Manifest[]): boolean {
     const includes = manifests.flatMap(m => m.nestAssets ?? []);
-    if (includes.length === 0) return;
-
-    const cliPath = path.join(targetDir, 'nest-cli.json');
-    const cli     = JSON.parse(fs.readFileSync(cliPath, 'utf-8'));
+    if (includes.length === 0) return false;
 
     cli.compilerOptions ??= {};
     const assets: unknown[] = cli.compilerOptions.assets ?? [];
@@ -22,5 +20,11 @@ export function addNestAssets(targetDir: string, manifests: Manifest[]): void {
     }
 
     cli.compilerOptions.assets = assets;
-    fs.writeFileSync(cliPath, JSON.stringify(cli, null, 2) + '\n');
+    return true;
+}
+
+export function addNestAssets(targetDir: string, manifests: Manifest[]): void {
+    const cliPath = path.join(targetDir, 'nest-cli.json');
+    const cli     = JSON.parse(fs.readFileSync(cliPath, 'utf-8'));
+    if (applyNestAssets(cli, manifests)) fs.writeFileSync(cliPath, JSON.stringify(cli, null, 2) + '\n');
 }

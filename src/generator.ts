@@ -16,6 +16,7 @@ import { buildAllClaudeFiles } from './builders/claude-md';
 import { buildSettingsJson } from './builders/settings-json';
 import { buildGitignore } from './builders/gitignore';
 import { buildTsconfig } from './builders/tsconfig';
+import { buildEmptySeed } from './builders/seed';
 import { resolveNestCliVersion } from './nest-cli-version';
 import { NEST } from './nest-version';
 import { DEPENDENCY_RANGES } from './dependencies';
@@ -296,23 +297,7 @@ export async function generateProject({ projectName, plugins, dbDriver, targetDi
     if (!resolvedIds.includes('users') && resolvedIds.includes('database')) {
         const seedFile = path.join(targetDir, 'src', 'database', 'seeds', 'seed.ts');
         if (fs.existsSync(seedFile)) {
-            fs.writeFileSync(seedFile, [
-                `// dotenv must load first — this script runs outside NestJS.`,
-                `import 'dotenv/config';`,
-                `import { AppDataSource } from '../config/data-source.js';`,
-                ``,
-                `async function seed(): Promise<void> {`,
-                `    console.log('\\n▶  Running seed...\\n');`,
-                `    await AppDataSource.initialize();`,
-                `    console.log('  ✔  Database connection established');`,
-                `    // Add seeders here.`,
-                `    console.log('\\n✔  Seed completed.\\n');`,
-                `    await AppDataSource.destroy();`,
-                `}`,
-                ``,
-                `seed();`,
-                ``,
-            ].join('\n'));
+            fs.writeFileSync(seedFile, buildEmptySeed());
         }
     }
 
