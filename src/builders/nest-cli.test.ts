@@ -1,8 +1,7 @@
 import * as fs from 'fs';
-import * as os from 'os';
 import * as path from 'path';
-import { describe, it, expect, afterEach } from 'vitest';
-import { addNestAssets } from './nest-cli';
+import { describe, it, expect } from 'vitest';
+import { applyNestAssets } from './nest-cli';
 import { loadManifest, Manifest } from '../generator';
 
 const fake = (nestAssets?: string[]): Manifest => ({
@@ -10,42 +9,32 @@ const fake = (nestAssets?: string[]): Manifest => ({
     dependencies: { prod: [], dev: [] }, scripts: {}, nestAssets,
 });
 
-describe('addNestAssets', () => {
-    let dir: string;
-    const write = (cli: object) => {
-        dir = fs.mkdtempSync(path.join(os.tmpdir(), 'nest-cli-'));
-        fs.writeFileSync(path.join(dir, 'nest-cli.json'), JSON.stringify(cli));
-    };
-    const read = () => JSON.parse(fs.readFileSync(path.join(dir, 'nest-cli.json'), 'utf-8'));
-
-    afterEach(() => { if (dir) fs.rmSync(dir, { recursive: true, force: true }); });
-
+describe('applyNestAssets', () => {
     it('adds the plugin globs as assets and keeps the rest of nest-cli.json', () => {
-        write({ collection: '@nestjs/schematics', sourceRoot: 'src', compilerOptions: { deleteOutDir: true } });
-        addNestAssets(dir, [fake(['plugins/mailer/templates/**/*.hbs'])]);
-        expect(read().compilerOptions).toEqual({
+        const cli = { collection: '@nestjs/schematics', sourceRoot: 'src', compilerOptions: { deleteOutDir: true } };
+        expect(applyNestAssets(cli, [fake(['plugins/mailer/templates/**/*.hbs'])])).toBe(true);
+        expect(cli.compilerOptions).toEqual({
             deleteOutDir: true,
             assets: [{ include: 'plugins/mailer/templates/**/*.hbs', watchAssets: true }],
         });
-        expect(read().sourceRoot).toBe('src');
+        expect(cli.sourceRoot).toBe('src');
     });
 
     it('does nothing when no plugin declares assets (the file is left untouched)', () => {
-        write({ sourceRoot: 'src' });
-        const before = fs.readFileSync(path.join(dir, 'nest-cli.json'), 'utf-8');
-        addNestAssets(dir, [fake(undefined), fake([])]);
-        expect(fs.readFileSync(path.join(dir, 'nest-cli.json'), 'utf-8')).toBe(before);
+        const cli = { sourceRoot: 'src' };
+        expect(applyNestAssets(cli, [fake(undefined), fake([])])).toBe(false);
+        expect(cli).toEqual({ sourceRoot: 'src' });
     });
 
     it('creates compilerOptions when missing and never duplicates or drops existing assets', () => {
-        write({ sourceRoot: 'src' });
-        addNestAssets(dir, [fake(['a/**/*.hbs'])]);
-        addNestAssets(dir, [fake(['a/**/*.hbs'])]);
-        expect(read().compilerOptions.assets).toHaveLength(1);
+        const cli: any = { sourceRoot: 'src' };
+        applyNestAssets(cli, [fake(['a/**/*.hbs'])]);
+        applyNestAssets(cli, [fake(['a/**/*.hbs'])]);
+        expect(cli.compilerOptions.assets).toHaveLength(1);
 
-        write({ compilerOptions: { assets: ['**/*.graphql'] } });
-        addNestAssets(dir, [fake(['a/**/*.hbs'])]);
-        expect(read().compilerOptions.assets).toEqual(['**/*.graphql', { include: 'a/**/*.hbs', watchAssets: true }]);
+        const withGraphql: any = { compilerOptions: { assets: ['**/*.graphql'] } };
+        applyNestAssets(withGraphql, [fake(['a/**/*.hbs'])]);
+        expect(withGraphql.compilerOptions.assets).toEqual(['**/*.graphql', { include: 'a/**/*.hbs', watchAssets: true }]);
     });
 
     it('the mailer plugin declares its templates folder, matching where the SMTP module reads them', () => {

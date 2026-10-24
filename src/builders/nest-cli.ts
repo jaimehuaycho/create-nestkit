@@ -1,5 +1,3 @@
-import * as fs   from 'fs';
-import * as path from 'path';
 import { Manifest } from '../generator';
 
 // `nest build` only compiles TypeScript: any other file (Handlebars templates, GraphQL schemas...) is NOT copied into
@@ -21,10 +19,4 @@ export function applyNestAssets(cli: any, manifests: Manifest[]): boolean {
 
     cli.compilerOptions.assets = assets;
     return true;
-}
-
-export function addNestAssets(targetDir: string, manifests: Manifest[]): void {
-    const cliPath = path.join(targetDir, 'nest-cli.json');
-    const cli     = JSON.parse(fs.readFileSync(cliPath, 'utf-8'));
-    if (applyNestAssets(cli, manifests)) fs.writeFileSync(cliPath, JSON.stringify(cli, null, 2) + '\n');
 }

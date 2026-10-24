@@ -8,7 +8,7 @@ All notable changes to this project are documented here. The format follows
 
 ### Removed (BREAKING)
 - **NestJS 11 is no longer supported.** The package now targets only the latest NestJS major (12): every project is
-  scaffolded with `@nestjs/cli@^12` and the `@nestjs/*` packages pinned to `^12`. Removed the detection of a globally
+  scaffolded with Nest's 12 `application` schematic and the `@nestjs/*` packages pinned to `^12`. Removed the detection of a globally
   installed `nest`, the `NESTKIT_NEST_VERSION` override and the manifest field `minNestMajor`; Observability is
   always offered. When NestJS ships a new major, this package moves to it. Use an older release of create-nestkit
   for NestJS 11.
@@ -17,6 +17,14 @@ All notable changes to this project are documented here. The format follows
   TypeORM 1.x rejects.)
 - Minimum Node.js is now what the Nest 12 toolchain declares: `^22.22.3 || ^24.15.0 || >=26` (was `>=20`). CI runs
   on Node 22 and 24.
+
+### Changed
+- **Projects are built the way `nest new` builds them, in one step and in-process.** The generator no longer runs
+  `npx @nestjs/cli new` as a subprocess: it runs Nest's own `application` schematic (`@nestjs/schematics`, pinned
+  exactly) through the Angular DevKit engine, lays our files on top in the same in-memory tree and writes the result
+  once, so a failure while generating leaves nothing half written. The output is byte-identical to the previous
+  method. Generation no longer queries the npm registry for the CLI version and no longer depends on the npx cache.
+  TypeScript for development moved to 6, the peer range of `@nestjs/schematics` 12.
 
 ### Added
 - **Choose the password hashing algorithm when Auth is selected:** bcrypt (default) or Argon2id. The generated

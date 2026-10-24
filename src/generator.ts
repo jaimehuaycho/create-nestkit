@@ -1,23 +1,8 @@
 import * as fs            from 'fs';
 import * as path          from 'path';
 import { execSync }       from 'child_process';
-import { buildAppModule }     from './builders/app-module';
-import { buildEnvValidation } from './builders/env-validation';
-import { addPluginScripts, addInstallScriptPolicy } from './builders/package-json';
-import { addNestAssets } from './builders/nest-cli';
-import { getPasswordHasher, writePasswordUtil, PasswordHasherId } from './builders/password-hasher';
-import { buildDockerfile }    from './builders/dockerfile';
-import { buildDockerCompose } from './builders/docker-compose';
-import { buildEnvExample }    from './builders/env-example';
-import { buildMainTs }        from './builders/main-ts';
-import { buildHealthController } from './builders/health-controller';
-import { buildReadme }        from './builders/readme';
-import { buildAllClaudeFiles } from './builders/claude-md';
-import { buildSettingsJson } from './builders/settings-json';
-import { buildGitignore } from './builders/gitignore';
-import { buildTsconfig } from './builders/tsconfig';
-import { buildEmptySeed } from './builders/seed';
-import { resolveNestCliVersion } from './nest-cli-version';
+import { NodeWorkflow }   from '@angular-devkit/schematics/tools';
+import { getPasswordHasher, PasswordHasherId } from './builders/password-hasher';
 import { NEST } from './nest-version';
 import { DEPENDENCY_RANGES } from './dependencies';
 import { validateProjectName, validateTargetDir } from './validate';
@@ -31,7 +16,9 @@ export function pinDep(name: string): string {
     return `${name}@${range}`;
 }
 
-const TEMPLATES_DIR = path.join(__dirname, '..', 'templates');
+const PACKAGE_ROOT   = path.join(__dirname, '..');
+const TEMPLATES_DIR  = path.join(PACKAGE_ROOT, 'templates');
+const COLLECTION     = path.join(__dirname, 'schematics', 'collection.json');
 
 // ---------------------------------------------------------------------------
 // DB driver map — package(s) to install + docker-compose service per engine
@@ -158,6 +145,8 @@ export interface GeneratorOptions {
     targetDir:   string;
     // Password hashing algorithm, only used when Auth is selected. Defaults to bcrypt.
     passwordHasher?: PasswordHasherId;
+    // Module system of the generated project: Nest's ESM scaffold (vitest) or its CommonJS one (jest). Defaults to ESM.
+    moduleSystem?: 'esm' | 'cjs';
 }
 
 export interface Manifest {
@@ -196,131 +185,28 @@ export function resolvePlugins(selected: string[]): string[] {
     return resolved;
 }
 
-// Copies a directory recursively, substituting {{VAR}} placeholders.
-// Skips files/dirs starting with '_' (manifests, fragments).
-function copyDir(src: string, dest: string, vars: Record<string, string> = {}) {
-    fs.mkdirSync(dest, { recursive: true });
-
-    for (const entry of fs.readdirSync(src, { withFileTypes: true })) {
-        if (entry.name.startsWith('_')) continue;
-
-        const srcPath  = path.join(src, entry.name);
-        const destPath = path.join(dest, entry.name);
-
-        if (entry.isDirectory()) {
-            copyDir(srcPath, destPath, vars);
-        } else {
-            let content = fs.readFileSync(srcPath, 'utf-8');
-            for (const [key, val] of Object.entries(vars)) {
-                content = content.replaceAll(`{{${key}}}`, val);
-            }
-            fs.mkdirSync(path.dirname(destPath), { recursive: true });
-            fs.writeFileSync(destPath, content);
-        }
-    }
+// Builds the project on disk: Nest's own application schematic plus our layers, run as ONE in-memory tree and written at the end
+// (src/schematics/app). Nothing is written if any step fails. It is what `nest new` does through the schematics CLI, without the
+// subprocess, the registry lookup or a prompt we do not control.
+export async function scaffoldProject(parentDir: string, options: Record<string, unknown>, dryRun = false): Promise<void> {
+    const workflow = new NodeWorkflow(parentDir, { dryRun, resolvePaths: [PACKAGE_ROOT], schemaValidation: true });
+    await workflow.execute({ collection: COLLECTION, schematic: 'app', options }).toPromise();
 }
 
-export async function generateProject({ projectName, plugins, dbDriver, targetDir, passwordHasher }: GeneratorOptions) {
-    // First thing, before any filesystem or shell work: projectName is interpolated into the
-    // `nest new` command below, and the target must not clobber something that already exists.
+export async function generateProject({ projectName, plugins, dbDriver, targetDir, passwordHasher, moduleSystem }: GeneratorOptions) {
+    // First thing, before any filesystem or shell work: the target must not clobber something that already exists.
     const invalid = validateProjectName(projectName) ?? validateTargetDir(targetDir);
     if (invalid) throw new Error(invalid);
 
-    const parentDir   = path.dirname(targetDir);
     const resolvedIds = resolvePlugins(plugins);
     const manifests   = resolvedIds.map(loadManifest);
     const driver      = DB_DRIVERS[dbDriver] ?? DB_DRIVERS.postgres;
     // Hashing exists only with the users/auth plugins, so projects without Auth install no hashing library at all.
-    const hasher        = resolvedIds.includes('users') ? getPasswordHasher(passwordHasher) : null;
+    const hasher      = resolvedIds.includes('users') ? getPasswordHasher(passwordHasher) : null;
 
-    // 1. Scaffold base project with the official NestJS CLI.
-    // Some majors add scaffold prompts create-nestkit doesn't control via a flag (e.g. v12's
-    // ESM/CommonJS choice). Tried suppressing it by closing/piping stdin — doesn't work: the
-    // underlying prompt reads straight from /dev/tty, bypassing whatever we hand it as stdio,
-    // and closing stdin just makes it abort with "User force closed the prompt" instead of
-    // silently picking the highlighted default. So it stays interactive with `stdio: 'inherit'`
-    // — harmless either way, since the templates compile under both ESM and CommonJS (verified).
-    // The exact latest version in the range, not the range: npx caches a range under its text and would keep reusing an old 12.x (nest-cli-version.ts).
-    execSync(
-        `npx --yes @nestjs/cli@${resolveNestCliVersion()} new ${projectName} --skip-install --skip-git --package-manager npm ${NEST.newFlags.join(' ')}`,
-        { cwd: parentDir, stdio: 'inherit' },
-    );
+    await scaffoldProject(path.dirname(targetDir), { name: projectName, type: moduleSystem ?? 'esm', plugins, dbDriver, passwordHasher });
 
-    // 2. Override nest-generated tsconfig with ours (removes deprecated baseUrl, adds paths), keeping the test runner `types` Nest chose
-    //    (vitest/globals for ESM, jest for CommonJS), which would otherwise be lost.
-    const tsconfigPath = path.join(targetDir, 'tsconfig.json');
-    fs.writeFileSync(
-        tsconfigPath,
-        buildTsconfig(fs.readFileSync(path.join(TEMPLATES_DIR, 'base', 'tsconfig.json'), 'utf-8'), fs.readFileSync(tsconfigPath, 'utf-8')),
-    );
-
-    // 3. Remove default files that we replace with our own
-    for (const rel of ['src/app.module.ts', 'src/app.controller.ts', 'src/app.controller.spec.ts', 'src/app.service.ts', 'src/main.ts', 'test']) {
-        const full = path.join(targetDir, rel);
-        if (fs.existsSync(full)) fs.rmSync(full, { recursive: true, force: true });
-    }
-
-    // 4. Copy core source files
-    copyDir(path.join(TEMPLATES_DIR, 'core', 'src'), path.join(targetDir, 'src'));
-
-    // 5. Copy selected plugin source files
-    for (const id of resolvedIds) {
-        const pluginSrc = path.join(TEMPLATES_DIR, 'plugins', id, 'src');
-        if (fs.existsSync(pluginSrc)) {
-            copyDir(pluginSrc, path.join(targetDir, 'src'));
-        }
-    }
-
-    // The password hashing module for the chosen algorithm (only with Auth). Same API whichever was chosen.
-    if (hasher) writePasswordUtil(targetDir, hasher);
-
-    // 6. Generate dynamic files
-    fs.writeFileSync(
-        path.join(targetDir, 'src', 'main.ts'),
-        buildMainTs(manifests, dbDriver, projectName),
-    );
-
-    // 6a. Health controller: DB ping check + @Public() only wired in when
-    // the plugins backing them (database, auth) are actually active.
-    const healthCtrlPath = path.join(targetDir, 'src', 'app', 'health', 'controllers', 'health.controller.ts');
-    fs.mkdirSync(path.dirname(healthCtrlPath), { recursive: true });
-    fs.writeFileSync(healthCtrlPath, buildHealthController(manifests));
-
-    // Replace the Nest CLI's boilerplate README (framework branding, generic description)
-    // with one describing what this project actually contains.
-    fs.writeFileSync(
-        path.join(targetDir, 'README.md'),
-        buildReadme(manifests, dbDriver, projectName, hasher),
-    );
-
-    // 6b. Post-process seed: strip User/hashPassword imports and seeding when users plugin is absent
-    if (!resolvedIds.includes('users') && resolvedIds.includes('database')) {
-        const seedFile = path.join(targetDir, 'src', 'database', 'seeds', 'seed.ts');
-        if (fs.existsSync(seedFile)) {
-            fs.writeFileSync(seedFile, buildEmptySeed());
-        }
-    }
-
-    fs.writeFileSync(
-        path.join(targetDir, 'src', 'app.module.ts'),
-        buildAppModule(path.join(TEMPLATES_DIR, 'core', 'src', 'app.module.ts'), manifests),
-    );
-
-    fs.writeFileSync(
-        path.join(targetDir, 'src', 'config', 'env.validation.ts'),
-        buildEnvValidation(
-            path.join(TEMPLATES_DIR, 'core', 'src', 'config', 'env.validation.ts'),
-            resolvedIds,
-            TEMPLATES_DIR,
-        ),
-    );
-
-    addPluginScripts(targetDir, manifests);
-    // Before `npm install`, so the very first install already follows the policy.
-    addInstallScriptPolicy(targetDir, manifests, hasher?.allowScripts ?? []);
-    addNestAssets(targetDir, manifests);
-
-    // 7. Install dependencies. Every name goes through pinDep: no bare names, so nothing resolves to a surprise major.
+    // Install dependencies. Every name goes through pinDep: no bare names, so nothing resolves to a surprise major.
     const driverDeps   = driverDependencies(resolvedIds, driver);
     const coreProdDeps = CORE_PROD_DEPENDENCIES.map(d => pinDep(d));
     const pluginProd   = [...manifests.flatMap(m => m.dependencies.prod), ...(hasher?.dependencies.prod ?? [])].map(d => pinDep(d));
@@ -338,57 +224,4 @@ export async function generateProject({ projectName, plugins, dbDriver, targetDi
             { cwd: targetDir, stdio: 'inherit' },
         );
     }
-
-    // 8. Generate Docker + env files
-    fs.writeFileSync(
-        path.join(targetDir, 'Dockerfile'),
-        buildDockerfile(manifests),
-    );
-
-    fs.writeFileSync(
-        path.join(targetDir, 'docker-compose.yml'),
-        buildDockerCompose(resolvedIds, driver),
-    );
-
-    fs.writeFileSync(
-        path.join(targetDir, '.env.example'),
-        buildEnvExample(resolvedIds, dbDriver, TEMPLATES_DIR),
-    );
-
-    // 9. Generate the project's .claude/ (rules, settings, tooling) — tailored to selected plugins
-    writeClaudeTooling(targetDir, manifests, dbDriver, projectName, hasher?.id);
-}
-
-// Writes everything Claude Code reads from a generated project: the docs built per plugin selection
-// (CLAUDE.md, rules, journal), the enforced settings (permissions + hooks), the static tooling from the
-// core template (skills, subagents, hook scripts) and the .gitignore entries for personal state.
-// Exported so the whole output can be tested without running `nest new` and `npm install`.
-export function writeClaudeTooling(targetDir: string, manifests: Manifest[], dbDriver: string, projectName: string, passwordHasher?: PasswordHasherId): void {
-    const claudeDir = path.join(targetDir, '.claude');
-
-    const claudeFiles = buildAllClaudeFiles(manifests, dbDriver, projectName, passwordHasher);
-    for (const [relPath, content] of claudeFiles) {
-        const fullPath = path.join(targetDir, relPath);
-        fs.mkdirSync(path.dirname(fullPath), { recursive: true });
-        fs.writeFileSync(fullPath, content);
-    }
-
-    // Enforced configuration: permissions and hooks (settings.json), plus the static tooling from the
-    // core template: skills, subagents and hook scripts. Underscore-prefixed entries are skipped by copyDir.
-    fs.writeFileSync(path.join(claudeDir, 'settings.json'), buildSettingsJson(manifests));
-
-    const coreClaudeDir = path.join(TEMPLATES_DIR, 'core', '.claude');
-    for (const dir of ['skills', 'agents', 'hooks']) {
-        copyDir(path.join(coreClaudeDir, dir), path.join(claudeDir, dir));
-    }
-
-    // /nest-module and /db-map scaffold TypeORM entities + DtoRepository: meaningless without a database.
-    if (manifests.some(m => m.id === 'database')) {
-        copyDir(path.join(coreClaudeDir, 'skills-db'), path.join(claudeDir, 'skills'));
-    }
-
-    // `nest new --skip-git` writes no .gitignore, so this builds the whole file (and keeps secrets and personal Claude Code state out of git).
-    const gitignorePath = path.join(targetDir, '.gitignore');
-    const gitignore     = fs.existsSync(gitignorePath) ? fs.readFileSync(gitignorePath, 'utf-8') : '';
-    fs.writeFileSync(gitignorePath, buildGitignore(gitignore));
 }

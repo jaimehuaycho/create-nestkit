@@ -1,9 +1,6 @@
-import * as fs from 'fs';
-import * as os from 'os';
-import * as path from 'path';
-import { describe, it, expect, afterEach } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import {
-    PASSWORD_HASHERS, DEFAULT_PASSWORD_HASHER, getPasswordHasher, writePasswordUtil, PasswordHasherId,
+    PASSWORD_HASHERS, DEFAULT_PASSWORD_HASHER, getPasswordHasher, PasswordHasherId,
 } from './password-hasher';
 
 const IDS = Object.keys(PASSWORD_HASHERS) as PasswordHasherId[];
@@ -51,17 +48,5 @@ describe('password hasher registry', () => {
 
     it('argon2 treats a malformed stored hash as "no match" instead of throwing', () => {
         expect(PASSWORD_HASHERS.argon2.source).toMatch(/catch \{[\s\S]*return false;/);
-    });
-});
-
-describe('writePasswordUtil', () => {
-    let dir: string;
-    afterEach(() => { if (dir) fs.rmSync(dir, { recursive: true, force: true }); });
-
-    it.each(IDS)('writes src/shared/security/password.util.ts for %s', (id) => {
-        dir = fs.mkdtempSync(path.join(os.tmpdir(), 'hasher-'));
-        writePasswordUtil(dir, PASSWORD_HASHERS[id]);
-        const written = fs.readFileSync(path.join(dir, 'src', 'shared', 'security', 'password.util.ts'), 'utf-8');
-        expect(written).toBe(PASSWORD_HASHERS[id].source);
     });
 });

@@ -1,6 +1,3 @@
-import * as fs   from 'fs';
-import * as path from 'path';
-
 // The password hashing algorithm is a choice the user makes when Auth is selected. Each entry knows its npm packages, which
 // of them run an install script, the password length it accepts, and the source of the generated module. The generated
 // project's users service, auth service, seed and DTOs only import `hashPassword`, `comparePassword` and
@@ -89,10 +86,3 @@ export function getPasswordHasher(id: string | undefined): PasswordHasher {
 
 // Where the chosen hasher's module lives in a generated project.
 export const PASSWORD_UTIL_PATH = 'src/shared/security/password.util.ts';
-
-// Writes PASSWORD_UTIL_PATH for the chosen hasher.
-export function writePasswordUtil(targetDir: string, hasher: PasswordHasher): void {
-    const file = path.join(targetDir, ...PASSWORD_UTIL_PATH.split('/'));
-    fs.mkdirSync(path.dirname(file), { recursive: true });
-    fs.writeFileSync(file, hasher.source);
-}
