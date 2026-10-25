@@ -94,7 +94,7 @@ export function buildMainTs(manifests: Manifest[], dbDriver: string): string {
     if (hasObserve) lines.push(`        observeConfigured: !!process.env.OBSERVE_APP_KEY,`);
     lines.push(`    });`);
     lines.push(`}`);
-    lines.push(`bootstrap();`);
+    lines.push(`void bootstrap();`);
     lines.push(``);
 
     return lines.join('\n');

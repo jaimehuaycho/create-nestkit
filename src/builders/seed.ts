@@ -16,7 +16,7 @@ export function buildEmptySeed(): string {
         `    await AppDataSource.destroy();`,
         `}`,
         ``,
-        `seed();`,
+        `void seed();`,
         ``,
     ].join('\n');
 }

@@ -105,6 +105,11 @@ describe('every plugin selection, both module systems, in memory', () => {
 
             for (const broken of brokenImports(tree)) check(false, `broken import ${broken}`);
 
+            // Nest's oxlint config makes no-floating-promises an error: a bare top-level `bootstrap();` / `seed();` fails `npm run lint`.
+            for (const f of ['src/main.ts', 'src/database/seeds/seed.ts']) {
+                if (tree.exists(`/x/${f}`)) check(!/^(bootstrap|seed)\(\);/m.test(read(f)), `${f} ends with a floating promise (use void)`);
+            }
+
             const pkg       = JSON.parse(read('package.json'));
             const hasher    = ids.includes('users') ? getPasswordHasher(undefined) : null;
             const driverDeps = driverDependencies(ids, DB_DRIVERS[dbDriver]);
