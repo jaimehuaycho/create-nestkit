@@ -2,7 +2,9 @@ import { createRequire } from 'module';
 import * as path from 'path';
 import { describe, expect, it } from 'vitest';
 import { SchematicTestRunner, UnitTestTree } from '@angular-devkit/schematics/testing';
-import { loadManifest, resolvePlugins } from '../../generator';
+import { builtinModules } from 'module';
+import { CORE_PROD_DEPENDENCIES, DB_DRIVERS, driverDependencies, loadManifest, resolvePlugins } from '../../generator';
+import { getPasswordHasher } from '../../builders/password-hasher';
 
 createRequire(__filename)('ts-node/register/transpile-only');
 
@@ -36,6 +38,30 @@ function brokenImports(tree: UnitTestTree): string[] {
         }
     }
     return broken;
+}
+
+// Every third-party package the generated sources import must be one the generator installs for THAT project (Nest's own scaffold
+// dependencies, the core ones, the selected plugins', the engine's driver, the password hasher): catches a core file that needs
+// a package only one plugin installs, which relative-import checks cannot see.
+function uninstalledImports(tree: UnitTestTree, installed: Set<string>): string[] {
+    const missing: string[] = [];
+    const builtin = new Set(builtinModules);
+    const sources = tree.files.filter(f => /\/src\/.*\.ts$/.test(f) && !f.endsWith('.d.ts'));
+
+    for (const file of sources) {
+        const text = tree.readContent(file);
+        const specifiers = [
+            ...text.matchAll(/^\s*(?:import|export)\b[^;'"]*?from\s+['"]([^'"]+)['"]/gm),
+            ...text.matchAll(/^\s*import\s+['"]([^'"]+)['"]/gm),
+        ].map(m => m[1]);
+
+        for (const spec of specifiers) {
+            if (spec.startsWith('.') || spec.startsWith('node:')) continue;
+            const name = spec.startsWith('@') ? spec.split('/').slice(0, 2).join('/') : spec.split('/')[0];
+            if (!builtin.has(name) && !installed.has(name)) missing.push(`${file} -> ${spec}`);
+        }
+    }
+    return missing;
 }
 
 describe('every plugin selection, both module systems, in memory', () => {
@@ -78,6 +104,18 @@ describe('every plugin selection, both module systems, in memory', () => {
             check(!tree.files.some(f => /\{\{[A-Z_]+\}\}/.test(tree.readContent(f))), 'an unreplaced {{PLACEHOLDER}} is left in the output');
 
             for (const broken of brokenImports(tree)) check(false, `broken import ${broken}`);
+
+            const pkg       = JSON.parse(read('package.json'));
+            const hasher    = ids.includes('users') ? getPasswordHasher(undefined) : null;
+            const driverDeps = driverDependencies(ids, DB_DRIVERS[dbDriver]);
+            const installed = new Set<string>([
+                ...Object.keys({ ...pkg.dependencies, ...pkg.devDependencies }),
+                'express',   // types only; the server and its typings come with @nestjs/platform-express
+                ...CORE_PROD_DEPENDENCIES, ...driverDeps.prod, ...driverDeps.dev,
+                ...manifests.flatMap(m => [...m.dependencies.prod, ...m.dependencies.dev]),
+                ...(hasher ? [...hasher.dependencies.prod, ...hasher.dependencies.dev] : []),
+            ]);
+            for (const missing of uninstalledImports(tree, installed)) check(false, `import of a package that is not installed ${missing}`);
         }
 
         expect(problems).toEqual([]);
