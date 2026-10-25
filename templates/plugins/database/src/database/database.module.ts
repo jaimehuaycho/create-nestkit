@@ -30,6 +30,7 @@ import { DatabaseConfig } from './config/database.config.js';
                 autoLoadEntities: true,
                 synchronize:      false,
                 logging:          db.logging,
+                ...(db.type === 'mssql' ? { options: { trustServerCertificate: db.trustServerCertificate } } : {}),
             }),
         }),
     ],

@@ -11,6 +11,8 @@ export class DatabaseConfig {
     readonly password: string;
     readonly database: string;
     readonly logging:  boolean;
+    // SQL Server only: the driver rejects a self-signed certificate unless this is true.
+    readonly trustServerCertificate: boolean;
 
     constructor(cfg: ConfigService, app: AppConfig) {
         this.type     = cfg.get<string>('DB_TYPE')!;
@@ -19,6 +21,7 @@ export class DatabaseConfig {
         this.username = cfg.get<string>('DB_USER')!;
         this.password = cfg.get<string>('DB_PASSWORD')!;
         this.database = cfg.get<string>('DB_NAME')!;
+        this.trustServerCertificate = cfg.get<boolean>('DB_TRUST_SERVER_CERTIFICATE') ?? false;
         // Force logging off in production regardless of DB_LOGS value.
         this.logging  = app.isProduction ? false : (cfg.get<boolean>('DB_LOGS') ?? false);
     }

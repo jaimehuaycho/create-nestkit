@@ -6,4 +6,6 @@
     DB_PASSWORD: Joi.string().required(),
     DB_NAME:     Joi.string().required(),
     DB_LOGS:     Joi.boolean().default(false),
+    // SQL Server only: accept a self-signed server certificate (local development). Off by default.
+    DB_TRUST_SERVER_CERTIFICATE: Joi.boolean().default(false),
 

@@ -37,6 +37,14 @@ describe('buildEnvExample', () => {
         expect(mssql).toContain('DB_PORT=1433');
     });
 
+    it('offers DB_TRUST_SERVER_CERTIFICATE (off) only for SQL Server', () => {
+        const templatesDir = makeTemplatesDir();
+        expect(buildEnvExample(['database'], 'mssql', templatesDir)).toMatch(/^DB_TRUST_SERVER_CERTIFICATE=false$/m);
+        for (const driver of ['postgres', 'mysql', 'mariadb']) {
+            expect(buildEnvExample(['database'], driver, templatesDir)).not.toContain('DB_TRUST_SERVER_CERTIFICATE');
+        }
+    });
+
     it('falls back to the postgres block for an unknown driver', () => {
         const templatesDir = makeTemplatesDir();
         const result = buildEnvExample(['database'], 'nonexistent-driver', templatesDir);

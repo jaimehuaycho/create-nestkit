@@ -73,6 +73,9 @@ DB_USER=sa
 DB_PASSWORD=your_password
 DB_NAME=your_database
 DB_LOGS=false
+# SQL Server encrypts the connection and checks its certificate. The official Docker image and most local installs use a
+# self-signed one: set true there (development only). Keep false when the server has a certificate signed by a trusted CA.
+DB_TRUST_SERVER_CERTIFICATE=false
 
 # Seed. Leave SEED_ROOT_PASSWORD empty to generate a random password, printed once when you run the seed.
 SEED_ROOT_EMAIL=root@app.com

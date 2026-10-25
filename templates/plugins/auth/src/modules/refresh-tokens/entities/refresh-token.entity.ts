@@ -31,7 +31,7 @@ export class RefreshToken {
     usedAt: Date | null;
 
     /** The sign-in that started this family used a second factor: every access token refreshed from it says so (amr). */
-    @Column({ name: 'two_factor', type: 'boolean', default: false })
+    @Column({ name: 'two_factor', type: Boolean, default: false })
     twoFactor: boolean;
 
     /** Set on every token of a family when it is revoked (logout, reuse detected, logout everywhere). */

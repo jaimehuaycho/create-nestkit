@@ -18,4 +18,7 @@ export const AppDataSource = new DataSource({
 
     synchronize: false, // never let TypeORM alter the schema automatically
     logging:     false,
+
+    // SQL Server only: accept a self-signed certificate (local development). Off by default.
+    ...(process.env.DB_TYPE === 'mssql' ? { options: { trustServerCertificate: process.env.DB_TRUST_SERVER_CERTIFICATE === 'true' } } : {}),
 });

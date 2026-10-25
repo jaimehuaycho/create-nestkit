@@ -9,12 +9,12 @@ import { CreateDateColumn, UpdateDateColumn, DeleteDateColumn } from 'typeorm';
  */
 
 export abstract class BaseCreated {
-    @CreateDateColumn({ name: 'created_at', type: 'timestamp' })
+    @CreateDateColumn({ name: 'created_at' })
     createdAt: Date;
 }
 
 export abstract class BaseCreatedUpdated extends BaseCreated {
-    @UpdateDateColumn({ name: 'updated_at', type: 'timestamp' })
+    @UpdateDateColumn({ name: 'updated_at' })
     updatedAt: Date;
 }
 
@@ -24,6 +24,6 @@ export abstract class BaseCreatedUpdated extends BaseCreated {
  * Use repo.softDelete(id) / repo.restore(id) / repo.find({ withDeleted: true }).
  */
 export abstract class BaseEntitySoftDelete extends BaseCreatedUpdated {
-    @DeleteDateColumn({ name: 'deleted_at', type: 'timestamp', nullable: true })
+    @DeleteDateColumn({ name: 'deleted_at', type: Date, nullable: true })
     deletedAt: Date | null;
 }
