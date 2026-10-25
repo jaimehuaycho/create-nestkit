@@ -65,6 +65,8 @@ All notable changes to this project are documented here. The format follows
 - A project that selects the Mailer git-ignores `/var` (the `file` transport writes there).
 
 ### Added
+- **SQL Server projects can connect to a server with a self-signed certificate** (the official Docker image and most local installs): the new
+  `DB_TRUST_SERVER_CERTIFICATE` variable (off by default) is applied to the app, the TypeORM CLI and the seed.
 - **Choose the password hashing algorithm when Auth is selected:** bcrypt (default) or Argon2id. The generated
   `src/shared/security/password.util.ts` exports the same `hashPassword`, `comparePassword` and `PASSWORD_MAX_BYTES` for
   both, so the users service, auth service, seed and DTOs do not depend on the choice. Only the chosen library is
@@ -120,6 +122,9 @@ All notable changes to this project are documented here. The format follows
   characters or path separators (for example `x; rm -rf ~`) are rejected instead of being passed to the shell.
 
 ### Fixed
+- **The Auth tables and the base entity did not work on SQL Server.** `refresh_tokens.two_factor` was declared `boolean` (SQL Server has no such type) and the
+  base entity's dates were declared `timestamp` (a row-version counter there). They now use TypeORM's portable `Boolean` and `Date`, so the same entities run
+  on PostgreSQL, MySQL, MariaDB and SQL Server (MySQL and MariaDB get `datetime` instead of `timestamp`, which also lifts the year-2038 limit).
 - The Docker healthcheck of projects with the PDF plugin always failed: it used `wget`, which `node:22-bookworm-slim`
   does not ship (verified in Docker). Both Dockerfiles now healthcheck with Node's own `fetch`.
 - An invalid `NODE_ENV` crashed with `Cannot destructure property 'logger'`. It now fails with
