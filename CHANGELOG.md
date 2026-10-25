@@ -6,6 +6,8 @@ All notable changes to this project are documented here. The format follows
 
 ## Unreleased
 
+## 2.0.0 - 2026-10-25
+
 ### Removed (BREAKING)
 - **NestJS 11 is no longer supported.** The package now targets only the latest NestJS major (12): every project is
   scaffolded with Nest's 12 `application` schematic and the `@nestjs/*` packages pinned to `^12`. Removed the detection of a globally
@@ -102,7 +104,6 @@ All notable changes to this project are documented here. The format follows
   session. The Module/Service/Controller/Exception patterns now live in `rules/api-patterns.md`. The generated
   `CLAUDE.md` tells Claude to read an area's rule first when planning work there before touching any file.
 
-### Changed
 - Publishing is now guarded: `npm run build` cleans `dist/` first, and `prepublishOnly` runs the build, the tests
   and a package check that fails if internal files would ship or required ones are missing.
 - CI also runs on `develop` and verifies the package contents.
@@ -121,8 +122,6 @@ All notable changes to this project are documented here. The format follows
 ### Fixed
 - The Docker healthcheck of projects with the PDF plugin always failed: it used `wget`, which `node:22-bookworm-slim`
   does not ship (verified in Docker). Both Dockerfiles now healthcheck with Node's own `fetch`.
-- Mailer templates never reached `dist/`: `nest-cli.json` had no `assets` entry. Plugins can now declare `nestAssets`,
-  and the mailer copies `src/plugins/mailer/templates/**/*.hbs`, where its SMTP module reads them.
 - An invalid `NODE_ENV` crashed with `Cannot destructure property 'logger'`. It now fails with
   `Invalid NODE_ENV "x". Allowed values: ...`.
 - The generated docs taught `from 'src/...'` imports, which fail typecheck in ESM projects. They now show the real style
@@ -144,9 +143,8 @@ All notable changes to this project are documented here. The format follows
 - **The generated `main.ts` never enabled shutdown hooks.** On `SIGTERM` (`docker stop`, Kubernetes) Nest then skipped `onModuleDestroy` and
   `onApplicationShutdown`, so the database connection, and any module that drains work when stopping, were cut instead of closed. It now calls
   `app.enableShutdownHooks()`.
-- **Projects were scaffolded with whatever Nest CLI 12.x was cached on the machine.** `npx @nestjs/cli@^12` is cached under the text of the range and
-  never asks the registry again, so a machine that once ran 12.0.0 kept generating with the 12.0.0 template after 12.0.10 was published. The generator now
-  resolves the latest 12.x itself and runs that exact version (falling back to the range offline). Among other things the current template no longer needs
+- **Projects were scaffolded with whatever Nest CLI 12.x was cached on the machine**, so an old template could be used after a newer one was
+  published. The scaffold now comes from `@nestjs/schematics`, pinned exactly (see Changed). The current template also no longer needs
   `vite-tsconfig-paths`, whose deprecated `tsconfck` dependency made `npm ci` fail in the generated Dockerfile.
 - **The generated `docker-compose.yml` could not run the app.** The container read the host-side `.env`, so it looked for the database on `localhost`
   (itself) and listened on your own `PORT` while the mapping, `EXPOSE` and healthcheck assume 3000. The `app` service now sets `PORT: 3000` and, with a
@@ -155,9 +153,9 @@ All notable changes to this project are documented here. The format follows
   now installed only with the Database plugin.
 - **`tsc --noEmit` failed on any spec that used the test runner's globals.** The `tsconfig.json` we write replaced Nest's, dropping its `types`
   (`vitest/globals` for ESM, `jest` for CommonJS). They are now carried over.
-- **`docker compose up` failed for any project with the Mailer plugin.** Its `.env.example` had `SMTP_FROM="My App" <noreply@example.com>`: text after a
-  closing quote, which the strict parser of compose's `env_file` rejects (`unexpected character "<"`) before anything starts. The value is now one quoted
-  string, and a test checks every line of the `.env.example` of every plugin and database combination against those rules.
+- **`docker compose up` failed for any project with the Mailer plugin.** Its `.env.example` had text after a closing quote, which the strict parser of
+  compose's `env_file` rejects before anything starts. A test now checks every line of the `.env.example` of every plugin and database combination
+  against those rules.
 - **`npm test` could not run in CommonJS projects.** ts-jest stopped with `TS5011: The common source directory ... 'rootDir' must be set` because our
   `tsconfig.json` lacked the `"rootDir": "."` that Nest sets (TypeScript 6 wants it explicit); `tsconfig.build.json` still narrows it to `./src`, so the
   build output is unchanged.
